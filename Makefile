@@ -14,7 +14,7 @@ build: smb-complete.nes
 	$(AS) $(AFLAGS) --create-dep "$@.dep" --listing $@.lst -g --debug-info $< -o $@
 
 inc/wram.inc: wram.asm wram.map
-	python scripts/genram.py wram.map inc/wram.inc
+	python3 scripts/genram.py wram.map inc/wram.inc
 
 wram.map: wram.asm
 	$(AS) -l wram.map wram.asm -o wram.o
