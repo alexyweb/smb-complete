@@ -6161,10 +6161,11 @@ AlterYP: sty $07                      ;store Y here
          sta SprObject_Y_Speed,x
          cmp $02                      ;compare to maximum speed
          bmi ChkUpM                   ;if less than preset value, skip this part
+         bne CapYSp                   ;if greater than preset value, keep vertical speed within max
          lda SprObject_Y_MoveForce,x
          cmp #$80                     ;if less positively than preset maximum, skip this part
          bcc ChkUpM
-         lda $02
+CapYSp:  lda $02
          sta SprObject_Y_Speed,x      ;keep vertical speed within maximum value
          lda #$00
          sta SprObject_Y_MoveForce,x  ;clear fractional
