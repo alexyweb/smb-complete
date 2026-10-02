@@ -238,27 +238,23 @@ Square1SoundQueue:
     .res 1 ; $ff
 
 .segment "MAIN_RAM" : absolute
-NMISelect:
+NMIFlags:
     .res 1 ; $0100
 IRQSelect:
     .res 1 ; $0101
-RESETFlag:
-    .res 1 ; $0102
-RESETType:
-    .res 1 ; $0103
 
 IRQTimer_Low:
-    .res 1 ; $0104
+    .res 1 ; $0102
 IRQTimer_High:
-    .res 1 ; $0105
+    .res 1 ; $0103
 
 ; hacky!
 Mirror_PPU_SCROLL1:
-    .res 1 ; $0106
+    .res 1 ; $0104
 Mirror_PPU_SCROLL2:
-    .res 1 ; $0107
+    .res 1 ; $0105
 
-    .res 1 ; $0108 (unused)
+    .res 3 ; $0106-$0108 (unused)
 
 VerticalFlipFlag:
     .res 1 ; $0109
@@ -558,7 +554,6 @@ JoypadOverride        = $0758
 
 IRQAckFlag            = $077b
 IRQUpdateFlag         = $0722
-NMIAckFlag            = $077c
 
 Mirror_PPU_CTRL       = $0778
 Mirror_PPU_MASK       = $0779
@@ -690,7 +685,7 @@ EntrancePage          = $0751
 WarpZoneControl       = $06d6
 ChangeAreaTimer       = $06de
 
-MultiLoopCorrectCntr  = $06d9
+MultiLoopFailureFlag  = $06d9
 MultiLoopPassCntr     = $06da
 
 FetchNewGameTimerFlag = $0757
@@ -724,7 +719,7 @@ BrickCoinTimerFlag    = $06bc
 StarFlagTaskControl   = $0746
 
 PseudoRandomBitReg    = $07a7
-WarmBootValidation    = $07ff
+WarmBootValidation    = $07fe
 
 SprShuffleAmtOffset   = $06e0
 SprShuffleAmt         = $06e1
@@ -927,7 +922,7 @@ Level3 = 2
 Level4 = 3
 
 WarmBootOffset        = <$07d6
-ColdBootOffset        = <$07fe
+ColdBootOffset        = <$07fd
 SoundMemory           = $07b0
 SwimTileRepOffset     = PlayerGraphicsTable + $9e
 MusicHeaderOffsetData = MusicHeaderData - 1
@@ -986,4 +981,3 @@ VRAM_NT_TOAD          = 11
 VRAM_NT_PEACH_1ST     = 14
 VRAM_NT_PEACH_2ND     = 18
 VRAM_NT_CREDITS       = 30
-VRAM_PAL_MENU         = 31

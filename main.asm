@@ -54,9 +54,8 @@ Start:      ldx #$00                    ;disable NMIs and rendering
             jsr InitializeMemory        ;clear memory using pointer in Y
             sta SND_DELTA_REG+1         ;reset DMC output level
             sta DiskIOTask              ;reset disk IO task
-            lda #$a5                    ;set warm boot flag in case the player hits reset
-            sta WarmBootValidation
-            sta PseudoRandomBitReg      ;set seed for pseudorandom register
+            lda #$a5                    ;set seed for pseudorandom register
+            sta PseudoRandomBitReg
             jsr MoveAllSpritesOffscreen ;reset OAM and nametable memory
             jsr InitializeNameTables
             inc DisableScreenFlag       ;tell NMI to keep rendering disabled
@@ -77,8 +76,8 @@ Start:      ldx #$00                    ;disable NMIs and rendering
             sta SoundEngineSet          ;hack
             lda #%10001000              ;set up pattern table arrangment
             jsr WritePPUReg1            ;and enable NMIs
-WaitForNMI: lda NMIAckFlag              ;spin until NMI routine has executed
-            beq WaitForNMI
+WaitForNMI: bit NMIFlags               ;spin until NMI routine has executed
+            bvc WaitForNMI
             lda RawJoypadBits           ;copy controller 1 inputs over to
             sta SavedJoypadBits         ;temp address that may be modified
             jsr PauseRoutine
@@ -139,8 +138,9 @@ CheckInvalidWorldNum:
             jsr TerminateGame
 ExecutionTree:
             jsr OperModeExecutionTree ;run one of the program's four modes
-WaitForIRQ: lda #$00
-            sta NMIAckFlag            ;clear NMI flag and wait for next NMI
+WaitForIRQ: lda NMIFlags              ;clear NMI acknowledgement bit and wait for next NMI
+            and #%10111111
+            sta NMIFlags
             jmp WaitForNMI
 
 ;-------------------------------------------------------------------------------------
@@ -218,7 +218,7 @@ NoCursor:      ldx PauseCursorIndices,y
                jsr SaveProgress
                cpy #$02
                bcc ExitPause2
-               jmp ReturnToLoader
+               jmp RESETHandler
 
 ChkForPause:   jsr ChkStart           ;check for pause
                lda GamePauseStatus    ;if not paused, leave
@@ -6298,33 +6298,37 @@ AreaDataOfsLoopbackJ:
   .byte $0c, $0c, $42, $42, $10, $10, $30, $30, $06, $0c, $54, $06
 
 ChkEnemyFrenzyJ:
-      jmp ChkEnemyFrenzy ;lazy but it works?
+      jmp ChkEnemyFrenzy             ;lazy but it works?
 
 ProcLoopCommandJ:
            ldy #$0c                  ;start at the end of each set of loop data
 FindLoopJ: dey
-           bmi ChkEnemyFrenzyJ        ;if all data is checked and not match, do not loop
+           bmi ChkEnemyFrenzyJ       ;if all data is checked and not match, do not loop
            lda WorldNumber           ;check to see if one of the world numbers
-           cmp LoopCmdWorldNumberJ,y  ;matches our current world number
+           cmp LoopCmdWorldNumberJ,y ;matches our current world number
            bne FindLoopJ
            lda CurrentPageLoc        ;check to see if one of the page numbers
-           cmp LoopCmdPageNumberJ,y   ;matches the page we're currently on
+           cmp LoopCmdPageNumberJ,y  ;matches the page we're currently on
            bne FindLoopJ
+           lda MultiLoopFailureFlag  ;if we've already failed a multi-part loop, skip all this
+           bne NextLoopJ
            lda Player_Y_Position     ;check to see if the player is at the correct position
-           cmp LoopCmdYPositionJ,y    ;if not, branch to check for world 7
+           cmp LoopCmdYPositionJ,y   ;if not, branch to fail loop
            bne WrongChkJ
            lda Player_State          ;check to see if the player is
            cmp #$00                  ;on solid ground (i.e. not jumping or falling)
-           bne WrongChkJ              ;if not, player fails to pass loop, and loopback
-           lda #Sfx_CorrectPath      ;(TO-DO: fix lazy)
+           bne WrongChkJ             ;if not, player fails to pass loop, and loopback
+           lda #Sfx_CorrectPath      ;play sound effect for correct path taken
            sta Square2SoundQueue
-           inc MultiLoopCorrectCntr  ;increment counter for correct progression
-WrongChkJ: inc MultiLoopPassCntr     ;increment master multi-part counter
+           bne NextLoopJ             ;skip over failure condition
+WrongChkJ: lda #Sfx_Blast            ;play sound effect for incorrect path taken
+           sta Square2SoundQueue     ;(TO-DO: code in correct sfx)
+           inc MultiLoopFailureFlag  ;set flag for multi-part loop failure
+NextLoopJ: inc MultiLoopPassCntr     ;increment master multi-part counter
            lda MultiLoopPassCntr     ;have we done all parts?
            cmp MultiLoopCountJ,y
            bne InitLCmd              ;if not, skip this part
-           lda MultiLoopCorrectCntr  ;if so, have we done them all correctly?
-           cmp MultiLoopCountJ,y
+           lda MultiLoopFailureFlag  ;if so, have we done them all correctly?
            beq InitMLp               ;if so, branch past unnecessary check here
            bne DoLpBack              ;if player is not in right place, loop back
 
@@ -6344,27 +6348,31 @@ FindLoop: dey
           lda CurrentPageLoc        ;check to see if one of the page numbers
           cmp LoopCmdPageNumber,y   ;matches the page we're currently on
           bne FindLoop
+          lda MultiLoopFailureFlag  ;if we've already failed a multi-part loop, skip all this
+          bne NextLoop
           lda Player_Y_Position     ;check to see if the player is at the correct position
-          cmp LoopCmdYPosition,y    ;if not, branch to check for world 7
+          cmp LoopCmdYPosition,y    ;if not, branch to fail loop
           bne WrongChk
           lda Player_State          ;check to see if the player is
           cmp #$00                  ;on solid ground (i.e. not jumping or falling)
           bne WrongChk              ;if not, player fails to pass loop, and loopback
-          lda #Sfx_CorrectPath      ;(TO-DO: fix lazy)
+          lda #Sfx_CorrectPath      ;play sound effect for correct path taken
           sta Square2SoundQueue
-          inc MultiLoopCorrectCntr  ;increment counter for correct progression
-WrongChk: inc MultiLoopPassCntr     ;increment master multi-part counter
+          bne NextLoop              ;skip over failure condition
+WrongChk: lda #Sfx_Blast            ;play sound effect for incorrect path taken
+          sta Square2SoundQueue     ;(TO-DO: code in correct sfx)
+          inc MultiLoopFailureFlag  ;set flag for multi-part loop failure
+NextLoop: inc MultiLoopPassCntr     ;increment master multi-part counter
           lda MultiLoopPassCntr     ;have we done all parts?
           cmp MultiLoopCount,y
           bne InitLCmd              ;if not, skip this part
-          lda MultiLoopCorrectCntr  ;if so, have we done them all correctly?
-          cmp MultiLoopCount,y
+          lda MultiLoopFailureFlag  ;if so, have we done them all correctly?
           beq InitMLp               ;if so, branch past unnecessary check here
 DoLpBack: jsr ExecGameLoopback      ;if player is not in right place, loop back
           jsr KillAllEnemies
 InitMLp:  lda #$00                  ;initialize counters used for multi-part loop commands
           sta MultiLoopPassCntr
-          sta MultiLoopCorrectCntr
+          sta MultiLoopFailureFlag
 InitLCmd: lda #$00                  ;initialize loop command flag
           sta LoopCommand
 
@@ -14018,7 +14026,7 @@ ContinueOrRetry:
   lda ContinueMenuSelect       ;if player selected "save and continue"
   cmp #$01                     ;then branch to continue
   beq Continue
-  jmp ReturnToLoader           ;otherwise exit game
+  jmp RESETHandler             ;otherwise exit game
 RetryGame:
   ;lda #$00
   ;sta CompletedWorlds          ;init completed worlds flags
@@ -14092,7 +14100,7 @@ ProcGameMenu:
 :             lda SavedCompletedWorlds, x
               sta CompletedWorlds
 StG:          jmp StartGame
-ExitGame:     jmp ReturnToLoader
+ExitGame:     jmp RESETHandler
 ChkSelect:    lda PressedJoypadBits       ;branch if pressing up, down or select
               and #Up_Dir+Down_Dir+Select_Button
               bne SelectLogic
@@ -15380,7 +15388,7 @@ Memory_ColdBoot:
       .byte $ff, $ff ; page 4
       .byte $ff, $ff ; page 5
       .byte $ff, $ff ; page 6
-      .byte $ff, $fe ; page 7
+      .byte $ff, $fd ; page 7
 
 Memory_InitializeArea:
       .byte $ff, $ef ; page 0
@@ -15484,9 +15492,9 @@ SaveLp: lda SaveHeader,x        ;write save data header
         sta SaveDataHeader,x
         dex
         bpl SaveLp              ;loop back if we're not done
-		lda #$01
-		sta DifficultyFlag
-		sta AnimatedTiles
+        lda #$01
+        sta DifficultyFlag
+        sta AnimatedTiles
         rts                     ;otherwise we have reset save data, leave
 
 EraseSaveFile:
@@ -15557,6 +15565,24 @@ LoadFontTileset:
 	  lda FontTiles,y
       sta FME7Parameter
 	  rts
+
+;------------------------------------------------------------------------------------
+
+; disables NMI handler and waits until NMI occurs during VBLANK
+DelayUntilVBLANK:
+      lda NMIFlags            ;disable NMI handler and clear acknowledge bit
+      and #%00111111
+      sta NMIFlags
+      lda PPU_STATUS          ;clear VBLANK flag
+      lda Mirror_PPU_CTRL     ;enable NMI generation
+      ora #%10000000
+      sta PPU_CTRL
+@wait_loop:
+      bit NMIFlags            ;spin until NMI is acknowledged during VBLANK period
+      bvc @wait_loop
+      lda Mirror_PPU_CTRL     ;restore previous state of PPU_CTRL
+      sta PPU_CTRL
+      rts
 
 ;------------------------------------------------------------------------------------
 
@@ -15672,25 +15698,22 @@ VRAM_AddrTable:
    ; final ending screen
    .word ThanksForPlayingMsg
 
-   ; main menu tilemap and palettes
-   .word MainMenuPalette
-
-MainMenuPalette: ; (TO-DO: Find better way to handle this)
-      .byte $3f,$00,$20
-      .byte $0f,$30,$12,$0c
-      .byte $0f,$36,$17,$07
-      .byte $0f,$0f,$0f,$0f
-      .byte $0f,$27,$17,$07
-      .byte $0f,$16,$27,$18
-      .byte $0f,$1a,$30,$27
-      .byte $0f,$16,$30,$27
-      .byte $0f,$0f,$30,$10
-      .byte $00
-
 ;------------------------------------------------------------------------------------
 ; INTERRUPT HANDLERS
 
 NMIHandler:
+      bit NMIFlags
+      bpl AcknowledgeNMI        ;only acknowledge NMI (%0xxxxxxx)
+      jmp NMIRoutine            ;run NMI routine (%1xxxxxxx)
+AcknowledgeNMI:
+      pha
+      lda NMIFlags              ;set NMI acknowledgement bit
+      ora #%01000000
+      sta NMIFlags
+      pla
+      rti
+
+NMIRoutine:
       pha                       ;preserve accumulator, X and Y registers
       txa
       pha
@@ -15712,12 +15735,15 @@ NMIHandler:
       sta FME7Parameter         ;enable it
       inc IRQAckFlag            ;reset flag to wait for next IRQ
 SkipIRQ:
+      lda NMIFlags              ;disable NMI for now to prevent reentrant NMI
+      and #%01111111
+      sta NMIFlags
       lda Mirror_PPU_CTRL       ;alter name table address to be $2000
-      and #%01111100
+      and #%11111100
       sta Mirror_PPU_CTRL
       sta PPU_CTRL
-      lda NMIAckFlag            ;is NMI flag already set?
-      beq ProcessVRAMBuffer     ;if not, update VRAM contents
+      bit NMIFlags              ;is NMI acknowledgement bit set?
+      bvc ProcessVRAMBuffer     ;if not, update VRAM contents
       lda #$00                  ;otherwise, reset scroll here
       jsr InitScroll
       jmp SkipVRAMJoypad        ;and skip ahead to process sound
@@ -15726,7 +15752,6 @@ ProcessVRAMBuffer:
       pha
       lda $01
       pha
-      inc NMIAckFlag
       lda Mirror_PPU_MASK
       and #%11100110            ;disable OAM and background display by default
       ldy DisableScreenFlag     ;if screen disabled, skip this
@@ -15777,13 +15802,11 @@ RestorePPURegs:
       sta $00
 SkipVRAMJoypad:
       jsr RunSoundEngine        ;run sound engine every frame
-      lda PPU_STATUS            ;reset flip-flop
-      lda Mirror_PPU_CTRL       ;reenable NMIs
-      ora #$80
-      sta Mirror_PPU_CTRL
-      sta PPU_CTRL
       lda ShadowPRGBank         ;restore original bank
       jsr TempSwitch16KBank
+      lda NMIFlags              ;reenable NMIs and acknowledge this one
+      ora #%11000000
+      sta NMIFlags
       pla                       ;restore accumulator, X and Y registers
       tay
       pla
@@ -15813,29 +15836,6 @@ WaitForVBLANK:
       bpl WaitForVBLANK
       txs                         ;reset stack pointer
 
-      ; Init FDS BIOS style pseudo-registers
-      lda #$c0
-      sta NMISelect               ;PC action on NMI
-      lda #$80
-      sta IRQSelect               ;PC action on IRQ
-      lda RESETFlag               ;check reset type
-      cmp #$35
-      bne ColdBoot                ;cold boot if RESETFlag != 0x35
-      lda RESETType
-      cmp #$53
-      beq WarmBoot                ;warm boot if RESETType == 0x53
-      cmp #$ac
-      bne ColdBoot                ;cold boot if RESETType != 0xac
-      lda #$53
-      sta RESETType               ;indicate soft reset
-      bne WarmBoot
-ColdBoot:
-      lda #$35
-      sta RESETFlag               ;set reset flag
-      lda #$ac
-      sta RESETType               ;indicate first boot
-WarmBoot:
-
       ; Init FME7
       lda #$08                    ;enable PRG-RAM
       sta FME7Command
@@ -15849,7 +15849,6 @@ WarmBoot:
       sta FME7Command
       lda #$00
       sta FME7Parameter
-ReturnToLoader:
       lda #FME7_IRQTimer_Ctrl     ;disable FME7 IRQ counter
       sta FME7Command
       lda #$00
@@ -15860,7 +15859,6 @@ CHRBankLoop:
       stx FME7Parameter
       dex
       bpl CHRBankLoop
-      cli                         ;enable IRQs
       lda #LoaderBank             ;switch to loader bank
       jsr Switch16KBank
       jmp StartLoader             ;now start the game!

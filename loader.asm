@@ -2,26 +2,39 @@
 .segment "LOADER"
 .org $8000
 
+; temporary location for variables
 NameTableDestination = $08
 TitleScrollOffset = $0a
 TitleScrollAmount = $0b
 
+;-------------------------------------------------------------------------------------
+; INIT CODE & CORE LOOP
+
 StartLoader:
-        ldx #$00                    ;disable NMIs and rendering
-        stx PPU_CTRL
-        stx PPU_MASK
-        dex
-        txs                         ;reset stack pointer
-        ldy #<Memory_ColdBoot       ;clear memory up to $07fe
+        ldy #<Memory_ColdBoot       ;clear memory up to $07fd
         ldx #>Memory_ColdBoot
         jsr InitializeMemory
+        lda #$55                    ;check for warm boot (reset) by looking for
+        cmp WarmBootValidation      ;the presence of 0xaa55 reset signature
+        bne ColdBoot                ;clear all memory if not present
+        asl
+        cmp WarmBootValidation+1
+        bne ColdBoot
+        lda #1                      ;if warm boot, skip disclaimer screen
+        sta OperMode
+        jmp PrepareLoader
+ColdBoot:
+        lda #$55                    ;write reset signature of 0xaa55 at $07fe-$07ff
+        sta WarmBootValidation
+        asl
+        sta WarmBootValidation+1
+
+PrepareLoader:
         jsr CheckSaveData
         lda #$03
         sta FME7Command
         lda #CHR_MENU               ;load CHR tiles for menu
         sta FME7Parameter
-        lda #VRAM_PAL_MENU          ;queue menu palette
-        sta VRAM_Buffer_AddrCtrl
         inc DisableScreenFlag       ;tell NMI to keep rendering disabled
         lda #0
         sta Mirror_PPU_SCROLL1      ;set scroll before split
@@ -33,44 +46,68 @@ StartLoader:
         jsr famistudio_init
         lda #0                      ;play menu song
         jsr famistudio_music_play
+        lda #%10000000              ;enable NMI handler
+        sta NMIFlags
+        lda #%00000000              ;set IRQ mode
+        sta IRQSelect
         lda #%10001000              ;set up pattern table arrangment
         jsr WritePPUReg1            ;and enable NMIs
+        cli                         ;enable IRQs
 @nmi_wait:
-        lda NMIAckFlag              ;wait until NMI finishes
-        beq @nmi_wait
+        bit NMIFlags                ;wait until NMI finishes
+        bvc @nmi_wait
         inc FrameCounter            ;increment frame counter for flashing palette
-        jsr MenuStateMachine        ;run menu
+        jsr CoreLoaderRoutines      ;run core routines
         jsr ChangePalette
-        lda #$00                    ;clear NMI flag and wait for next NMI
-        sta NMIAckFlag
-        beq @nmi_wait
+        lda NMIFlags                ;clear NMI acknowledgement bit and wait for next NMI
+        and #%10111111
+        sta NMIFlags
+        jmp @nmi_wait
 
 ;-------------------------------------------------------------------------------------
+; STATE MACHINES
 
-MenuStateMachine:
+CoreLoaderRoutines:
         lda OperMode
+        ldx OperMode_Task
         jsr JumpEngine
 
-        .word MainMenuStateMachine
-        .word SubMenuStateMachine
+        .word DisclaimerTasks
+        .word GameSelectTasks
+        .word OptionsTasks
 
-MainMenuStateMachine:
-        lda OperMode_Task
+DisclaimerTasks:
+        txa
         jsr JumpEngine
 
-        .word RenderMainTilemap
-        .word RenderTitleScreen
-        .word PrepMenu
-        .word RunMenu
-        .word ScrollNewTitle
-        .word LoadIntoGame
+        .word DisableScreen
+        .word ClearScreen
+        .word Dis_SetPalette
+        .word Dis_WriteMessage
+        .word Dis_InitVariables
+        .word Dis_ScrollMessage
 
-SubMenuStateMachine:
-        lda OperMode_Task
+GameSelectTasks:
+        txa
         jsr JumpEngine
 
+        .word DisableScreen
+        .word ClearScreen
+        .word Sel_SetPalette
+        .word Sel_RenderMainTilemap
+        .word Sel_RenderTitleScreen
+        .word Sel_PrepMenu
+        .word Sel_RunMenu
+        .word Sel_ScrollNewTitle
+        .word Sel_LoadIntoGame
+
+OptionsTasks:
+        txa
+        jsr JumpEngine
+
+        .word DisableScreen
+        .word ClearScreen
         .word Opt_Init
-        .word Opt_ClearScreen
         .word Opt_Prep
         .word Opt_Run
 
@@ -78,6 +115,138 @@ DoNothing:
         rts
 
 ;-------------------------------------------------------------------------------------
+; COMMON TASKS
+
+DisableScreen:
+        inc DisableScreenFlag           ; disable rendering
+        lda #$00                        ; disable IRQ generation
+        sta IRQUpdateFlag
+        sta Mirror_PPU_SCROLL1          ; reset scroll position
+        sta Mirror_PPU_SCROLL2
+NextTask:
+        inc OperMode_Task               ; move onto next task
+        rts
+
+ClearScreen:
+        lda #$0c                        ;set horizontal nametable arrangement
+        sta FME7Command                 ;(TO-DO: Handle in NMI)
+        lda #$00
+        sta FME7Parameter
+        jsr MoveAllSpritesOffscreen     ; hide all sprites
+        jsr InitializeNameTables        ; initialize nametables
+        jmp NextTask                    ; next task
+
+;-------------------------------------------------------------------------------------
+; DISCLAIMER TASKS
+
+Dis_PaletteData:
+      .byte $3f,$00,32
+      .byte $0f,$30,$0f,$0f
+      .byte $0f,$0f,$0f,$0f
+      .byte $0f,$0f,$0f,$0f
+      .byte $0f,$0f,$0f,$0f
+      .byte $0f,$0f,$0f,$0f
+      .byte $0f,$0f,$0f,$0f
+      .byte $0f,$0f,$0f,$0f
+      .byte $0f,$0f,$0f,$0f
+Dis_PaletteData_End:
+
+Dis_SetPalette:
+      ldx VRAM_Buffer_Offset
+      ldy #0
+@copy_palette:
+      lda Dis_PaletteData,y           ; copy palette for disclaimer screen
+      sta VRAM_Buffer,x               ; store in VRAM buffer
+      inx
+      iny
+      cpy #Dis_PaletteData_End-Dis_PaletteData
+      bcc @copy_palette
+      stx VRAM_Buffer_Offset          ; update buffer offset
+      jmp NextTask                    ; next task
+
+Dis_MessageData:
+      .byte $28,$08,17,"SUPER MARIO BROS."
+      .byte $28,$2c,8,"COMPLETE"
+      .byte $28,$64,22,"THIS PROJECT IS A FREE"
+      .byte $28,$84,24,"FAN-MADE ROM HACK AND IS"
+      .byte $28,$a4,23,"NOT AFFILIATED WITH NOR"
+      .byte $28,$c4,21,"ENDORSED BY NINTENDO."
+Dis_MessageData_End:
+
+Dis_WriteMessage:
+      lda #$0c                        ;set vertical nametable arrangement
+      sta FME7Command                 ;(TO-DO: Handle in NMI)
+      lda #$01
+      sta FME7Parameter
+      ldx VRAM_Buffer_Offset
+      ldy #0
+@copy_message:
+      lda Dis_MessageData,y           ; copy message for disclaimer screen
+      sta VRAM_Buffer,x               ; store in VRAM buffer
+      inx
+      iny
+      cpy #Dis_MessageData_End-Dis_MessageData
+      bcc @copy_message
+      stx VRAM_Buffer_Offset          ; update buffer offset
+      jmp NextTask                    ; next task
+
+Dis_InitVariables:
+      lda #240                      ; set message duration timer for 4 seconds
+      sta TimerControl
+      lda #$00
+      sta DisableScreenFlag           ; enable rendering
+      jmp NextTask
+
+Dis_ScrollMessage:
+      lda PressedJoypadBits           ; skip this sequence if start button pressed
+      and #Start_Button
+      bne @close_disclaimer
+@check_scroll:
+      lda Mirror_PPU_SCROLL2          ; has message reached final destination?
+      cmp #174
+      bcs @decrement_timer
+      inc Mirror_PPU_SCROLL2          ; no, scroll it at a rate of 2 pixels per frame
+      inc Mirror_PPU_SCROLL2
+      rts
+@decrement_timer:
+      dec TimerControl                ; has the timer expired?
+      bne @exit                       ; if not, leave 
+@close_disclaimer:
+      lda #1                          ; bring up game select menu
+      sta OperMode
+      lda #0
+      sta OperMode_Task
+@exit:
+      rts
+
+;-------------------------------------------------------------------------------------
+; GAME SELECT MENU TASKS
+
+Sel_PaletteData: ; (TO-DO: Find better way to handle this)
+      .byte $3f,$00,32
+      .byte $0f,$30,$12,$0c
+      .byte $0f,$36,$17,$07
+      .byte $0f,$0f,$0f,$0f
+      .byte $0f,$27,$17,$07
+      .byte $0f,$16,$27,$18
+      .byte $0f,$1a,$30,$27
+      .byte $0f,$16,$30,$27
+      .byte $0f,$0f,$30,$10
+      .byte $00
+Sel_PaletteData_End:
+
+Sel_SetPalette:
+      ldx VRAM_Buffer_Offset
+      ldy #0
+@copy_palette:
+      lda Sel_PaletteData,y           ; copy palette for game select screen
+      sta VRAM_Buffer,x               ; store in VRAM buffer
+      inx
+      iny
+      cpy #Sel_PaletteData_End-Sel_PaletteData
+      bcc @copy_palette
+      stx VRAM_Buffer_Offset          ; update buffer offset
+      jmp NextTask                    ; next task
 
 MainMenuSelections:
         .byte $20,$a6,20,"SUPER MARIO COMPLETE"
@@ -87,7 +256,7 @@ MainMenuSelections:
         .byte $00
 MainMenuSelections_End:
 
-RenderMainTilemap:
+Sel_RenderMainTilemap:
         jsr MoveAllSpritesOffscreen
         jsr InitializeNameTables
         ldx #4 ; draw box
@@ -114,7 +283,7 @@ RenderMainTilemap:
         sta IRQUpdateFlag
         rts
 
-RenderTitleScreen:
+Sel_RenderTitleScreen:
         lda TitleScrollOffset
         bne DrawNextFiveColumns
         sta NameTableDestination
@@ -138,7 +307,7 @@ DoneWithTitleScreen:
         inc OperMode_Task
         rts
 
-PrepMenu:
+Sel_PrepMenu:
         lda #$00
         sta DisableScreenFlag
         jsr DrawMainMenuCursor
@@ -171,7 +340,7 @@ MenuCursorY:
 MenuCursorX:
   .byte $27, $27, $27, $27
 
-RunMenu:
+Sel_RunMenu:
         lda #<ContinueMenuSelect
         sta $00
         lda #>ContinueMenuSelect
@@ -220,9 +389,11 @@ DoSelection:
         lda ContinueMenuSelect
         cmp #$03
         bne :+
-        inc OperMode
-        lda #$fe
+        lda #2
+        sta OperMode
+        lda #0
         sta OperMode_Task
+        rts
 :       inc OperMode_Task
         inc OperMode_Task
         rts
@@ -250,7 +421,7 @@ WriteAttributeData:
         sta VRAM_Buffer_Offset
         rts
 
-ScrollNewTitle:
+Sel_ScrollNewTitle:
         jsr WriteTitleColumn
         lda TitleScrollAmount
         bpl ScrollRight
@@ -440,6 +611,7 @@ OptionsGraphic:
         .byte $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24
 
 ;-------------------------------------------------------------------------------------
+; OPTIONS MENU TASKS
 
 Opt_RowIndex = $e0
 Opt_GfxAddr = $e1
@@ -721,15 +893,7 @@ Opt_Init:
         lda #0
         sta Opt_RowIndex        ; init opt index
         sta Opt_SelIndex        ; init sel index
-        inc DisableScreenFlag   ; disable rendering
-        inc OperMode_Task       ; next task
-        rts
-
-Opt_ClearScreen:
-        jsr MoveAllSpritesOffscreen     ; init all sprites
-        jsr InitializeNameTables        ; init nametables
-        inc OperMode_Task               ; next task
-        rts
+        jmp NextTask            ; next task
 
 Opt_Prep:
         lda Opt_RowIndex
@@ -1049,8 +1213,9 @@ Opt_UpdateMemory:
         lda Opt_SelIndex                ; redraw option text
         jmp Opt_QueueText
 Opt_ExitMenu:
-        lda #0
+        lda #1
         sta OperMode
+        lda #0
         sta OperMode_Task
         sta IRQUpdateFlag
         sta ScreenEdge_PageLoc
@@ -1307,12 +1472,12 @@ DrawArbitraryTextbox:
 
 ;-------------------------------------------------------------------------------------
 
-LoadIntoGame:
+Sel_LoadIntoGame:
         lda ContinueMenuSelect
         sta CurrentGame
         jsr LoadFontTileset
         jsr CopyFrictionData
-		jsr CopyTotalCoinBonus
+        jsr CopyTotalCoinBonus
         jsr CopyPaletteData
         jsr CopyDemoData
         jsr CopyTopScoreDisplay
