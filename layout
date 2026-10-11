@@ -12,7 +12,7 @@ MEMORY
 	LOADER:		start = $8000, size =  $4000, fill=yes, fillval=$FF, type = ro;
 	MAIN:		start = $8000, size =  $7FFA, fill=yes, fillval=$FF, type = ro;
 	VECTORS:	start = $FFFA, size =     $6, fill=yes, fillval=$FF, type = ro;
-	CHRROM:		start = $8000, size =  $4000, fill=yes, fillval=$FF, type = ro;
+	CHRROM:		start =     0, size =  $8000, fill=yes, fillval=$FF, type = ro;
 }
 
 SEGMENTS

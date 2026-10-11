@@ -36,10 +36,10 @@
 .charmap 'Y',$22
 .charmap 'Z',$23
 .charmap ' ',$24
-.charmap '-',$25
-.charmap 'x',$26
-.charmap '!',$27
-.charmap '.',$28
-.charmap '*',$29
-.charmap ',',$2a
-.charmap 'c',$2b
+.charmap '-',$28
+.charmap 'x',$29
+.charmap '!',$2a
+.charmap '.',$2c
+.charmap '*',$2d
+.charmap ',',$2e
+.charmap 'c',$2f

@@ -8,7 +8,7 @@
 
   .byte $4E,$45,$53,$1A                           ;  magic signature
   .byte 8                                         ;  PRG ROM size in 16384 byte units
-  .byte 2                                         ;  CHR
+  .byte 4                                         ;  CHR
   .byte $52                                       ;  mirroring type and mapper number lower nibble
   .byte $48                                       ;  mapper number upper nibble
 .ifdef PAL
@@ -531,19 +531,32 @@ EndExit:   rts
 ;data is used as tiles for numbers
 ;that appear when you defeat enemies
 FloateyNumTileData:
-      .byte $ff, $ff ;dummy
-      .byte $6c, $71 ; "100"
-      .byte $6d, $71 ; "200"
-      .byte $6e, $71 ; "400"
-      .byte $6f, $71 ; "500"
-      .byte $70, $71 ; "800"
-      .byte $6c, $6b ; "1000"
-      .byte $6d, $6b ; "2000"
-      .byte $6e, $6b ; "4000"
-      .byte $6f, $6b ; "5000"
-      .byte $70, $6b ; "8000"
-      .byte $00, $01 ; "1-UP"
-      .byte $70, $6b ; "8000"
+;dummy
+      .byte SPR_BLANK, SPR_BLANK
+; "100"
+      .byte SPR_SCORE, SPR_SCORE+5
+; "200"
+      .byte SPR_SCORE+1, SPR_SCORE+5
+; "400"
+      .byte SPR_SCORE+2, SPR_SCORE+5
+; "500"
+      .byte SPR_SCORE+3, SPR_SCORE+5
+; "800"
+      .byte SPR_SCORE+4, SPR_SCORE+5
+; "1000"
+      .byte SPR_SCORE, SPR_SCORE+6
+; "2000"
+      .byte SPR_SCORE+1, SPR_SCORE+6
+; "4000"
+      .byte SPR_SCORE+2, SPR_SCORE+6
+; "5000"
+      .byte SPR_SCORE+3, SPR_SCORE+6
+; "8000"
+      .byte SPR_SCORE+4, SPR_SCORE+6
+; "1-UP"
+      .byte SPR_1UP, SPR_1UP+1
+; "8000"
+      .byte SPR_SCORE+4, SPR_SCORE+6
 
 ;high nybble is digit number, low nybble is number to
 ;add to the digit of the player's score
@@ -870,7 +883,7 @@ GameText:
 TopStatusBarLineText:
   .byte $20, $43, 5, "MARIO"
   .byte $20, $52, 11, "WORLD  TIME"
-  .byte $20, $68, 5, "0  ", $5f, "x" ;score trailing digit and coin display
+  .byte $20, $68, 5, "0  ", $2b, "x" ;score trailing digit and coin display
   .byte $23, $c0, $7f, $aa ;attribute table data, clears name table 0 to palette 2
   .byte $23, $c2, $01, $ea ;attribute table data, used for coin icon in status bar
   .byte $ff ;end of data block
@@ -878,7 +891,7 @@ TopStatusBarLineText:
 WorldLivesDisplayText:
   .byte $21, $cf, 4, "x   " ;cross with spaces used on lives display
   .byte $21, $4b, 9, "WORLD  - " ;"WORLD  - " used on lives display
-  .byte $22, $0c, $47, $24 ;possibly used to clear time up
+  .byte $22, $0c, $47, BG_BLANK ;possibly used to clear time up
   .byte $23, $dc, $01, $ba ;attribute table data for crown
   .byte $ff
 
@@ -889,7 +902,7 @@ TimeUpText:
 GameOverText:
   .byte $21, $6b, 9, "GAME OVER"
   .byte $21, $e8, 8, "CONTINUE"
-  .byte $22, $0c, $47, $24
+  .byte $22, $0c, $47, BG_BLANK
   .byte $22, $48, 17, "SAVE AND CONTINUE"
   .byte $22, $a8, 13, "SAVE AND QUIT"
   .byte $ff
@@ -907,21 +920,21 @@ LuigiName:
   .byte "LUIGI" ; no address or length
 
 WarpZoneNumbers:
-  .byte $04, $03, $02, $00         ; warp zone numbers, note spaces on middle
-  .byte $24, $05, $24, $00         ; zone, partly responsible for
-  .byte $08, $07, $06, $00         ; the minus world
+  .byte $04, $03, $02, $00                ; warp zone numbers, note spaces on middle
+  .byte BG_BLANK, $05, BG_BLANK, $00      ; zone, partly responsible for
+  .byte $08, $07, $06, $00                ; the minus world
 
-  .byte $24, $02, $24, $00         ; 1-2 underground main area warpzone
-  .byte $24, $03, $24, $00         ; 1-2 ground subarea warpzone
-  .byte $24, $04, $24, $00         ; 1-2 underground subarea warpzone
-  .byte $24, $01, $24, $00         ; 3-1 warpzone
-  .byte $24, $06, $24, $00         ; 5-1 warpzone
-  .byte $24, $07, $24, $00         ; 5-2 underground main area warpzone
-  .byte $24, $08, $24, $00         ; 5-2 ground subarea warpzone
-  .byte $24, $05, $24, $00         ; 8-1 warpzone
-  .byte $24, $0b, $24, $00         ; A-2 warpzone
-  .byte $24, $0c, $24, $00         ; A-3 warpzone
-  .byte $24, $0d, $24, $00         ; B-4 warpzone
+  .byte BG_BLANK, $02, BG_BLANK, $00      ; 1-2 underground main area warpzone
+  .byte BG_BLANK, $03, BG_BLANK, $00      ; 1-2 ground subarea warpzone
+  .byte BG_BLANK, $04, BG_BLANK, $00      ; 1-2 underground subarea warpzone
+  .byte BG_BLANK, $01, BG_BLANK, $00      ; 3-1 warpzone
+  .byte BG_BLANK, $06, BG_BLANK, $00      ; 5-1 warpzone
+  .byte BG_BLANK, $07, BG_BLANK, $00      ; 5-2 underground main area warpzone
+  .byte BG_BLANK, $08, BG_BLANK, $00      ; 5-2 ground subarea warpzone
+  .byte BG_BLANK, $05, BG_BLANK, $00      ; 8-1 warpzone
+  .byte BG_BLANK, $0b, BG_BLANK, $00      ; A-2 warpzone
+  .byte BG_BLANK, $0c, BG_BLANK, $00      ; A-3 warpzone
+  .byte BG_BLANK, $0d, BG_BLANK, $00      ; B-4 warpzone
 
 GameTextOffsets:
    .byte TopStatusBarLineText-GameText
@@ -979,7 +992,7 @@ PutLevelNum:   ldy LevelNumber
 ExWGT:         rts
 
 GetDashStarForDisplay:
-               lda #$25
+               lda #'-'
                ldy CurrentGame
                beq CheckLevelSet
                dey
@@ -989,7 +1002,7 @@ GetDashStarForDisplay:
                rts
 CheckLevelSet: ldy LevelSet
                beq ExGDS
-DisplayStar:   lda #$29
+DisplayStar:   lda #'*'
 ExGDS:         rts
 
 CheckPlayerName:
@@ -1252,11 +1265,16 @@ ExitColorRot: rts                      ;leave
 ;$06, $07 - block buffer address low/high
 
 BlockGfxData:
-       .byte $79, $79, $7a, $7a
-       .byte $7a, $7a, $7a, $7a
-       .byte $2f, $30, $31, $32
-       .byte $24, $24, $24, $24
-       .byte $5d, $5d, $5d, $5d
+;brick with line
+       .byte BG_BRICK, BG_BRICK, BG_BRICK+1, BG_BRICK+1
+;brick without line
+       .byte BG_BRICK+1, BG_BRICK+1, BG_BRICK+1, BG_BRICK+1
+;empty block
+       .byte BG_QUESTION_BLOCK+4, BG_QUESTION_BLOCK+5, BG_QUESTION_BLOCK+6, BG_QUESTION_BLOCK+7
+;blank metatile
+       .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+;blank metatile (water)
+       .byte BG_COLOR_2, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
 
 RemoveCoin_Axe:
               lda #$03                 ;load offset for default blank metatile
@@ -1359,121 +1377,264 @@ MetatileGraphics_High:
   .byte >Palette0_MTiles, >Palette1_MTiles, >Palette2_MTiles, >Palette3_MTiles
 
 Palette0_MTiles:
-  .byte $24, $24, $24, $24 ;blank
-  .byte $27, $27, $27, $27 ;black metatile
-  .byte $24, $24, $24, $71 ;bush left
-  .byte $72, $5c, $73, $5c ;bush middle
-  .byte $24, $74, $24, $24 ;bush right
-  .byte $24, $6c, $6c, $5d ;mountain left
-  .byte $5d, $5d, $70, $5d ;mountain left bottom/middle center
-  .byte $24, $6d, $24, $6e ;mountain middle top
-  .byte $6f, $5d, $24, $6f ;mountain right
-  .byte $70, $5d, $5d, $5d ;mountain right bottom
-  .byte $5d, $5d, $5d, $5d ;mountain middle bottom
-  .byte $24, $5a, $24, $5a ;bridge guardrail
-  .byte $24, $6a, $6a, $24 ;chain
-  .byte $54, $56, $55, $57 ;tall tree top, top half
-  .byte $54, $58, $55, $59 ;short tree top
-  .byte $56, $58, $57, $59 ;tall tree top, bottom half
-  .byte $33, $37, $34, $38 ;warp pipe end left, points up
-  .byte $35, $39, $36, $3a ;warp pipe end right, points up
-  .byte $33, $37, $34, $38 ;decoration pipe end left, points up
-  .byte $35, $39, $36, $3a ;decoration pipe end right, points up
-  .byte $3b, $3b, $3c, $3c ;pipe shaft left
-  .byte $5d, $5d, $3d, $3d ;pipe shaft right
-  .byte $41, $43, $9b, $44 ;tree ledge left edge
-  .byte $9b, $45, $9b, $45 ;tree ledge middle
-  .byte $9b, $44, $42, $46 ;tree ledge right edge
-  .byte $8d, $93, $8e, $94 ;mushroom left edge
-  .byte $8f, $95, $90, $96 ;mushroom middle
-  .byte $91, $97, $92, $98 ;mushroom right edge
-  .byte $3e, $82, $3f, $83 ;sideways pipe end top
-  .byte $80, $84, $80, $84 ;sideways pipe shaft top
-  .byte $81, $85, $3c, $3c ;sideways pipe joint top
-  .byte $86, $89, $87, $8a ;sideways pipe end bottom
-  .byte $5d, $8b, $5d, $8b ;sideways pipe shaft bottom
-  .byte $88, $8c, $3c, $3c ;sideways pipe joint bottom
-  .byte $ae, $b0, $af, $b1 ;seaplant
-  .byte $24, $24, $24, $24 ;blank, used on bricks or blocks that are hit
-  .byte $24, $61, $24, $62 ;flagpole ball
-  .byte $68, $68, $69, $69 ;flagpole shaft
-  .byte $24, $24, $24, $24 ;blank, used in conjunction with vines
+;blank
+  .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+;black metatile
+  .byte BG_COLOR_3, BG_COLOR_3, BG_COLOR_3, BG_COLOR_3
+
+;bush left
+  .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_CLOUD
+;bush middle
+  .byte BG_CLOUD+1, BG_COLOR_1, BG_CLOUD+2, BG_COLOR_1
+;bush right
+  .byte BG_BLANK, BG_CLOUD+3, BG_BLANK, BG_BLANK
+  
+;mountain left
+  .byte BG_BLANK, BG_MOUNTAIN, BG_MOUNTAIN, BG_COLOR_2
+;mountain left bottom/middle center
+  .byte BG_COLOR_2, BG_COLOR_2, BG_MOUNTAIN+4, BG_COLOR_2
+;mountain middle top
+  .byte BG_BLANK, BG_MOUNTAIN+1, BG_BLANK, BG_MOUNTAIN+2
+;mountain right
+  .byte BG_MOUNTAIN+3, BG_COLOR_2, BG_BLANK, BG_MOUNTAIN+3
+;mountain right bottom
+  .byte BG_MOUNTAIN+4, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
+;mountain middle bottom
+  .byte BG_COLOR_2, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
+
+;bridge guardrail
+  .byte BG_BLANK, BG_BRIDGE, BG_BLANK, BG_BRIDGE
+
+;chain
+  .byte BG_BLANK, BG_CHAIN, BG_CHAIN, BG_BLANK
+
+;tall tree top, top half
+  .byte BG_TREE, BG_TREE+2, BG_TREE+1, BG_TREE+3
+;short tree top
+  .byte BG_TREE, BG_TREE+4, BG_TREE+1, BG_TREE+5
+;tall tree top, bottom half
+  .byte BG_TREE+2, BG_TREE+4, BG_TREE+3, BG_TREE+5
+
+;warp pipe end left, points up
+  .byte BG_PIPE, BG_PIPE+4, BG_PIPE+1, BG_PIPE+5
+;warp pipe end right, points up
+  .byte BG_PIPE+2, BG_PIPE+6, BG_PIPE+3, BG_PIPE+7
+;decoration pipe end left, points up
+  .byte BG_PIPE, BG_PIPE+4, BG_PIPE+1, BG_PIPE+5
+;decoration pipe end right, points up
+  .byte BG_PIPE+2, BG_PIPE+6, BG_PIPE+3, BG_PIPE+7
+;pipe shaft left
+  .byte BG_PIPE+8, BG_PIPE+8, BG_PIPE+9, BG_PIPE+9
+;pipe shaft right
+  .byte BG_COLOR_2, BG_COLOR_2, BG_PIPE+10, BG_PIPE+10
+
+;tree ledge left edge
+  .byte BG_TREE_LEDGE, BG_TREE_LEDGE+2, BG_CLOUD_LEDGE+2, BG_TREE_LEDGE+3
+;tree ledge middle
+  .byte BG_CLOUD_LEDGE+2, BG_TREE_LEDGE+4, BG_CLOUD_LEDGE+2, BG_TREE_LEDGE+4
+;tree ledge right edge
+  .byte BG_CLOUD_LEDGE+2, BG_TREE_LEDGE+3, BG_TREE_LEDGE+1, BG_TREE_LEDGE+5
+
+;mushroom left edge
+  .byte BG_MUSHROOM_LEDGE, BG_MUSHROOM_LEDGE+6, BG_MUSHROOM_LEDGE+1, BG_MUSHROOM_LEDGE+7
+;mushroom middle
+  .byte BG_MUSHROOM_LEDGE+2, BG_MUSHROOM_LEDGE+8, BG_MUSHROOM_LEDGE+3, BG_MUSHROOM_LEDGE+9
+;mushroom right edge
+  .byte BG_MUSHROOM_LEDGE+4, BG_MUSHROOM_LEDGE+10, BG_MUSHROOM_LEDGE+5, BG_MUSHROOM_LEDGE+11
+
+;sideways pipe end top
+  .byte BG_PIPE+11, BG_PIPE+15, BG_PIPE+12, BG_PIPE+16
+;sideways pipe shaft top
+  .byte BG_PIPE+13, BG_PIPE+17, BG_PIPE+13, BG_PIPE+17
+;sideways pipe joint top
+  .byte BG_PIPE+14, BG_PIPE+18, BG_PIPE+9, BG_PIPE+9
+;sideways pipe end bottom
+  .byte BG_PIPE+19, BG_PIPE+22, BG_PIPE+20, BG_PIPE+23
+;sideways pipe shaft bottom
+  .byte BG_COLOR_2, BG_PIPE+24, BG_COLOR_2, BG_PIPE+24
+;sideways pipe joint bottom
+  .byte BG_PIPE+21, BG_PIPE+25, BG_PIPE+9, BG_PIPE+9
+
+;seaplant
+  .byte BG_CORAL, BG_CORAL+2, BG_CORAL+1, BG_CORAL+3
+
+;blank, used on bricks or blocks that are hit
+  .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+
+;flagpole ball
+  .byte BG_BLANK, BG_FLAGPOLE, BG_BLANK, BG_FLAGPOLE+1
+;flagpole shaft
+  .byte BG_FLAGPOLE+2, BG_FLAGPOLE+2, BG_FLAGPOLE+3, BG_FLAGPOLE+3
+
+;blank, used in conjunction with vines
+  .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
 
 Palette1_MTiles:
-  .byte $68, $68, $69, $69 ;vertical rope
-  .byte $64, $24, $64, $24 ;horizontal rope
-  .byte $24, $68, $63, $66 ;left pulley
-  .byte $65, $67, $24, $69 ;right pulley
-  .byte $24, $24, $24, $24 ;blank used for balance rope
-  .byte $7d, $7a, $7e, $7a ;castle top
-  .byte $7a, $7a, $5e, $5e ;castle window left
-  .byte $7a, $7a, $7a, $7a ;castle brick wall
-  .byte $5e, $5e, $7a, $7a ;castle window right
-  .byte $7f, $7a, $40, $7a ;castle top w/ brick
-  .byte $7b, $5e, $7c, $5e ;entrance top
-  .byte $5e, $5e, $5e, $5e ;entrance bottom
-  .byte $47, $47, $47, $47 ;green ledge stump
-  .byte $4c, $4e, $4d, $4f ;fence
-  .byte $c2, $c2, $c3, $c3 ;tree trunk
-  .byte $4a, $56, $4b, $57 ;mushroom stump top
-  .byte $56, $56, $57, $57 ;mushroom stump bottom
-  .byte $79, $7a, $79, $7a ;breakable brick w/ line
-  .byte $7a, $7a, $7a, $7a ;breakable brick
-  .byte $79, $7a, $79, $7a ;breakable brick (not used)
-  .byte $79, $7a, $79, $7a ;brick with line (power-up)
-  .byte $79, $7a, $79, $7a ;brick with line (poison shroom)
-  .byte $79, $7a, $79, $7a ;brick with line (vine)
-  .byte $79, $7a, $79, $7a ;brick with line (star)
-  .byte $79, $7a, $79, $7a ;brick with line (coins)
-  .byte $79, $7a, $79, $7a ;brick with line (1-up)
-  .byte $7a, $7a, $7a, $7a ;brick (power-up)
-  .byte $7a, $7a, $7a, $7a ;brick (poison shroom)
-  .byte $7a, $7a, $7a, $7a ;brick (vine)
-  .byte $7a, $7a, $7a, $7a ;brick (star)
-  .byte $7a, $7a, $7a, $7a ;brick (coins)
-  .byte $7a, $7a, $7a, $7a ;brick (1-up)
-  .byte $24, $24, $24, $24 ;hidden block (1 coin)
-  .byte $24, $24, $24, $24 ;hidden block (1-up)
-  .byte $24, $24, $24, $24 ;hidden block (poison shroom)
-  .byte $24, $24, $24, $24 ;hidden block (power-up)
-  .byte $ba, $bc, $bb, $bd ;solid block (3-d block)
-  .byte $48, $49, $48, $49 ;solid block (white wall)
-  .byte $5b, $24, $5b, $24 ;bridge
-  .byte $c4, $c6, $c5, $c7 ;bullet bill cannon barrel
-  .byte $c8, $ca, $c9, $cb ;bullet bill cannon top
-  .byte $cc, $cc, $cd, $cd ;bullet bill cannon bottom
-  .byte $24, $24, $24, $24 ;blank used for jumpspring
-  .byte $24, $7a, $24, $7a ;half brick used for jumpspring
-  .byte $aa, $ac, $ab, $ad ;solid block (water level, green rock)
-  .byte $50, $52, $51, $53 ;cracked rock terrain
-  .byte $24, $7a, $24, $7a ;half brick (not used)
-  .byte $3e, $82, $3f, $83 ;water pipe top
-  .byte $86, $89, $87, $8a ;water pipe bottom
-  .byte $24, $2f, $24, $3d ;flag ball (residual object)
+;vertical rope
+  .byte BG_FLAGPOLE+2, BG_FLAGPOLE+2, BG_FLAGPOLE+3, BG_FLAGPOLE+3
+;horizontal rope
+  .byte BG_PULLEY+1, BG_BLANK, BG_PULLEY+1, BG_BLANK
+;left pulley
+  .byte BG_BLANK, BG_FLAGPOLE+2, BG_PULLEY, BG_PULLEY+3
+;right pulley
+  .byte BG_PULLEY+2, BG_PULLEY+4, BG_BLANK, BG_FLAGPOLE+3
+;blank used for balance rope
+  .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+
+;castle top
+  .byte BG_CASTLE, BG_BRICK+1, BG_CASTLE+1, BG_BRICK+1
+;castle window left
+  .byte BG_BRICK+1, BG_BRICK+1, BG_COLOR_3, BG_COLOR_3
+;castle brick wall
+  .byte BG_BRICK+1, BG_BRICK+1, BG_BRICK+1, BG_BRICK+1
+;castle window right
+  .byte BG_COLOR_3, BG_COLOR_3, BG_BRICK+1, BG_BRICK+1
+;castle top w/ brick
+  .byte BG_CASTLE+2, BG_BRICK+1, BG_CASTLE+3, BG_BRICK+1
+;entrance top
+  .byte BG_CASTLE+4, BG_COLOR_3, BG_CASTLE+5, BG_COLOR_3
+;entrance bottom
+  .byte BG_COLOR_3, BG_COLOR_3, BG_COLOR_3, BG_COLOR_3
+
+;green ledge stump
+  .byte BG_TREE_LEDGE+6, BG_TREE_LEDGE+6, BG_TREE_LEDGE+6, BG_TREE_LEDGE+6
+
+;fence
+  .byte BG_FENCE, BG_FENCE+2, BG_FENCE+1, BG_FENCE+3
+
+;tree trunk
+  .byte BG_TREE_STEM, BG_TREE_STEM, BG_TREE_STEM+1, BG_TREE_STEM+1
+
+;mushroom stump top
+  .byte BG_MUSHROOM_STUMP, BG_TREE+2, BG_MUSHROOM_STUMP+1, BG_TREE+3
+;mushroom stump bottom
+  .byte BG_TREE+2, BG_TREE+2, BG_TREE+3, BG_TREE+3
+
+;breakable brick w/ line
+  .byte BG_BRICK, BG_BRICK+1, BG_BRICK, BG_BRICK+1
+;breakable brick
+  .byte BG_BRICK+1, BG_BRICK+1, BG_BRICK+1, BG_BRICK+1
+;breakable brick (not used)
+  .byte BG_BRICK, BG_BRICK+1, BG_BRICK, BG_BRICK+1
+;brick with line (power-up)
+  .byte BG_BRICK, BG_BRICK+1, BG_BRICK, BG_BRICK+1
+;brick with line (poison shroom)
+  .byte BG_BRICK, BG_BRICK+1, BG_BRICK, BG_BRICK+1
+;brick with line (vine)
+  .byte BG_BRICK, BG_BRICK+1, BG_BRICK, BG_BRICK+1
+;brick with line (star)
+  .byte BG_BRICK, BG_BRICK+1, BG_BRICK, BG_BRICK+1
+;brick with line (coins)
+  .byte BG_BRICK, BG_BRICK+1, BG_BRICK, BG_BRICK+1
+;brick with line (1-up)
+  .byte BG_BRICK, BG_BRICK+1, BG_BRICK, BG_BRICK+1
+;brick (power-up)
+  .byte BG_BRICK+1, BG_BRICK+1, BG_BRICK+1, BG_BRICK+1
+;brick (poison shroom)
+  .byte BG_BRICK+1, BG_BRICK+1, BG_BRICK+1, BG_BRICK+1
+;brick (vine)
+  .byte BG_BRICK+1, BG_BRICK+1, BG_BRICK+1, BG_BRICK+1
+;brick (star)
+  .byte BG_BRICK+1, BG_BRICK+1, BG_BRICK+1, BG_BRICK+1
+;brick (coins)
+  .byte BG_BRICK+1, BG_BRICK+1, BG_BRICK+1, BG_BRICK+1
+;brick (1-up)
+  .byte BG_BRICK+1, BG_BRICK+1, BG_BRICK+1, BG_BRICK+1
+;hidden block (1 coin)
+  .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+;hidden block (1-up) 
+  .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+;hidden block (poison shroom)
+  .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+;hidden block (power-up)
+  .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+
+;solid block (3-d block)
+  .byte BG_BLOCK, BG_BLOCK+2, BG_BLOCK+1, BG_BLOCK+3
+;solid block (white wall)
+  .byte BG_GROUND_CASTLE, BG_GROUND_CASTLE+1, BG_GROUND_CASTLE, BG_GROUND_CASTLE+1
+
+;bridge
+  .byte BG_BRIDGE+1, BG_BLANK, BG_BRIDGE+2, BG_BLANK
+
+;bullet bill cannon barrel
+  .byte BG_CANNON, BG_CANNON+2, BG_CANNON+1, BG_CANNON+3
+;bullet bill cannon top
+  .byte BG_CANNON+4, BG_CANNON+6, BG_CANNON+5, BG_CANNON+7
+;bullet bill cannon bottom
+  .byte BG_CANNON+8, BG_CANNON+8, BG_CANNON+9, BG_CANNON+9
+
+;blank used for jumpspring
+  .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+;half brick used for jumpspring
+  .byte BG_BLANK, BG_BRICK+1, BG_BLANK, BG_BRICK+1
+
+;solid block (water level, green rock)
+  .byte BG_GROUND_WATER, BG_GROUND_WATER+2, BG_GROUND_WATER+1, BG_GROUND_WATER+3
+;cracked rock terrain
+  .byte BG_GROUND, BG_GROUND+2, BG_GROUND+1, BG_GROUND+3
+
+;half brick (not used)
+  .byte BG_BLANK, BG_BRICK+1, BG_BLANK, BG_BRICK+1
+
+;water pipe top
+  .byte BG_PIPE+11, BG_PIPE+15, BG_PIPE+12, BG_PIPE+16
+;water pipe bottom
+  .byte BG_PIPE+19, BG_PIPE+22, BG_PIPE+20, BG_PIPE+23
+
+;flag ball (residual object)
+  .byte BG_BLANK, BG_FLAGPOLE, BG_BLANK, BG_FLAGPOLE+1
 
 Palette2_MTiles:
-  .byte $24, $24, $24, $71 ;cloud left
-  .byte $72, $5c, $73, $5c ;cloud middle
-  .byte $24, $74, $24, $24 ;cloud right
-  .byte $24, $24, $75, $24 ;cloud bottom left
-  .byte $76, $24, $77, $24 ;cloud bottom middle
-  .byte $78, $24, $24, $24 ;cloud bottom right
-  .byte $a9, $5d, $a9, $5d ;water/lava top
-  .byte $5d, $5d, $5d, $5d ;water/lava
-  .byte $be, $c0, $bf, $c1 ;cloud level terrain
-  .byte $a3, $a4, $a3, $a4 ;bowser's bridge
-  .byte $99, $9d, $9a, $9e ;cloud ledge left edge
-  .byte $9b, $9f, $9b, $a0 ;cloud ledge middle
-  .byte $9b, $a1, $9c, $a2 ;cloud ledge right edge
+;cloud left
+  .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_CLOUD
+;cloud middle
+  .byte BG_CLOUD+1, BG_COLOR_1, BG_CLOUD+2, BG_COLOR_1
+;cloud right
+  .byte BG_BLANK, BG_CLOUD+3, BG_BLANK, BG_BLANK
+;cloud bottom left
+  .byte BG_BLANK, BG_BLANK, BG_CLOUD+4, BG_BLANK
+;cloud bottom middle
+  .byte BG_CLOUD+5, BG_BLANK, BG_CLOUD+6, BG_BLANK
+;cloud bottom right
+  .byte BG_CLOUD+7, BG_BLANK, BG_BLANK, BG_BLANK
+
+;water/lava top
+  .byte BG_WAVE, BG_COLOR_2, BG_WAVE, BG_COLOR_2
+;water/lava
+  .byte BG_COLOR_2, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
+
+;cloud level terrain
+  .byte BG_CLOUD_BLOCK, BG_CLOUD_BLOCK+2, BG_CLOUD_BLOCK+1, BG_CLOUD_BLOCK+3
+
+;bowser's bridge
+  .byte BG_BRIDGE_BOWSER, BG_BRIDGE_BOWSER+1, BG_BRIDGE_BOWSER, BG_BRIDGE_BOWSER+1
+
+;cloud ledge left edge
+  .byte BG_CLOUD_LEDGE, BG_CLOUD_LEDGE+4, BG_CLOUD_LEDGE+1, BG_CLOUD_LEDGE+5
+;cloud ledge middle
+  .byte BG_CLOUD_LEDGE+2, BG_CLOUD_LEDGE+6, BG_CLOUD_LEDGE+2, BG_CLOUD_LEDGE+7
+;cloud ledge right edge
+  .byte BG_CLOUD_LEDGE+2, BG_CLOUD_LEDGE+8, BG_CLOUD_LEDGE+3, BG_CLOUD_LEDGE+9
 
 Palette3_MTiles:
-  .byte $6b, $2d, $2c, $2e ;question block (coin)
-  .byte $6b, $2d, $2c, $2e ;question block (power-up)
-  .byte $6b, $2d, $2c, $2e ;question block (poison shroom)
-  .byte $b2, $b4, $b3, $b5 ;coin
-  .byte $b6, $b8, $b7, $b9 ;underwater coin
-  .byte $2f, $31, $30, $32 ;empty block
-  .byte $a5, $a7, $a6, $a8 ;axe
+;question block (coin)
+  .byte BG_QUESTION_BLOCK, BG_QUESTION_BLOCK+2, BG_QUESTION_BLOCK+1, BG_QUESTION_BLOCK+3
+;question block (power-up)
+  .byte BG_QUESTION_BLOCK, BG_QUESTION_BLOCK+2, BG_QUESTION_BLOCK+1, BG_QUESTION_BLOCK+3
+;question block (poison shroom)
+  .byte BG_QUESTION_BLOCK, BG_QUESTION_BLOCK+2, BG_QUESTION_BLOCK+1, BG_QUESTION_BLOCK+3
+
+;coin
+  .byte BG_COIN, BG_COIN+2, BG_COIN+1, BG_COIN+3
+;underwater coin
+  .byte BG_COIN+4, BG_COIN+6, BG_COIN+5, BG_COIN+7
+
+;empty block
+  .byte BG_QUESTION_BLOCK+4, BG_QUESTION_BLOCK+6, BG_QUESTION_BLOCK+5, BG_QUESTION_BLOCK+7
+
+;axe
+  .byte BG_AXE, BG_AXE+2, BG_AXE+1, BG_AXE+3
 
 ;------------------------------------------------------------------------------------
 
@@ -3457,7 +3618,7 @@ WaterAnimIntervals:              ;lookup table for water animation speed
         .byte 10, 16, 16, 16     ;10 frames for water area types, 16 frames for everything else
 
 WaterAnimBanks:
-        .byte $0d, $02, $0e, $1f
+        .byte $05, $06, $07, $08
 
 GameEngine:
               jsr ProcFireball_Bubble    ;process fireballs and air bubbles
@@ -5519,7 +5680,7 @@ WriteDigits:
         ldy VRAM_Buffer_Offset
         lda VRAM_Buffer-6,y       ;check highest digit of score
         bne NoZSup                ;if zero, overwrite with space tile for zero suppression
-        lda #$24
+        lda #BG_BLANK
         sta VRAM_Buffer-6,y
 NoZSup: ldx ObjectOffset          ;get enemy object buffer offset
         rts
@@ -9373,12 +9534,12 @@ DrawEraseRope:
          sta VRAM_Buffer+2,x
          lda Enemy_Y_Speed,y         ;if platform moving upwards, branch
          bmi EraseR1                 ;to do something else
-         lda #$68
+         lda #BG_FLAGPOLE+2
          sta VRAM_Buffer+3,x         ;otherwise put tile numbers for left
-         lda #$69                    ;and right sides of rope in vram buffer
+         lda #BG_FLAGPOLE+3          ;and right sides of rope in vram buffer
          sta VRAM_Buffer+4,x
          jmp OtherRope               ;jump to skip this part
-EraseR1: lda #$24                    ;put blank tiles in vram buffer
+EraseR1: lda #BG_BLANK               ;put blank tiles in vram buffer
          sta VRAM_Buffer+3,x         ;to erase rope
          sta VRAM_Buffer+4,x
 
@@ -9396,12 +9557,12 @@ OtherRope:
          sta VRAM_Buffer+7,x         ;set length again for 2 bytes
          pla                         ;pull first copy of vertical speed from stack
          bpl EraseR2                 ;if moving upwards (note inversion earlier), skip this
-         lda #$68
+         lda #BG_FLAGPOLE+2
          sta VRAM_Buffer+8,x         ;otherwise put tile numbers for left
-         lda #$69                    ;and right sides of rope in vram
+         lda #BG_FLAGPOLE+3          ;and right sides of rope in vram
          sta VRAM_Buffer+9,x         ;transfer buffer
          jmp EndRp                   ;jump to skip this part
-EraseR2: lda #$24                    ;put blank tiles in vram buffer
+EraseR2: lda #BG_BLANK               ;put blank tiles in vram buffer
          sta VRAM_Buffer+8,x         ;to erase rope
          sta VRAM_Buffer+9,x
 EndRp:   lda #$00                    ;put null terminator at the end
@@ -11981,10 +12142,10 @@ SecondSprYPos:
       .byte $08, $00, $08, $00
 
 FirstSprTilenum:
-      .byte $88, $8a, $89, $8b
+      .byte SPR_HAMMER, SPR_HAMMER+2, SPR_HAMMER+1, SPR_HAMMER+3
 
 SecondSprTilenum:
-      .byte $89, $8b, $88, $8a
+      .byte SPR_HAMMER+1, SPR_HAMMER+3, SPR_HAMMER, SPR_HAMMER+2
 
 HammerSprAttrib:
       .byte $03, $03, $c3, $c3
@@ -12043,12 +12204,18 @@ NoHOffscr:  rts                         ;leave
 ;$05 - used as X coordinate for floatey number
 
 FlagpoleScoreNumTiles:
-      .byte $6f, $6b ; "5000"
-      .byte $6d, $6b ; "2000"
-      .byte $70, $71 ; "800"
-      .byte $6e, $71 ; "400"
-      .byte $6c, $71 ; "100"
-      .byte $00, $01 ; "1-UP"
+; "5000"
+      .byte SPR_SCORE+3, SPR_SCORE+6
+; "2000"
+      .byte SPR_SCORE+1, SPR_SCORE+6
+; "800"
+      .byte SPR_SCORE+4, SPR_SCORE+5
+; "400"
+      .byte SPR_SCORE+2, SPR_SCORE+5
+; "100"
+      .byte SPR_SCORE, SPR_SCORE+5
+; "1-UP"
+      .byte SPR_1UP, SPR_1UP+1
 
 FlagpoleGfxHandler:
       ldy Enemy_SprDataOffset,x      ;get sprite data offset for flagpole flag
@@ -12074,10 +12241,10 @@ FlagpoleGfxHandler:
       sta Sprite_Attributes,y        ;set attribute bytes for all three sprites
       sta Sprite_Attributes+4,y
       sta Sprite_Attributes+8,y
-      lda #$86
+      lda #SPR_FLAG
       sta Sprite_Tilenumber,y        ;put triangle shaped tile
       sta Sprite_Tilenumber+8,y      ;into first and third sprites
-      lda #$87
+      lda #SPR_FLAG+1
       sta Sprite_Tilenumber+4,y      ;put skull tile into second sprite
       lda FlagpoleCollisionYPos      ;get vertical coordinate at time of collision
       beq ChkFlagOffscreen           ;if zero, branch ahead
@@ -12221,14 +12388,14 @@ NotRsNum: lda Misc_Y_Position,x     ;get vertical coordinate
           lda #$02
           sta Sprite_Attributes,y   ;store attribute byte in both sprites
           sta Sprite_Attributes+4,y
-          lda #$6d
+          lda #SPR_SCORE+1
           sta Sprite_Tilenumber,y   ;put tile numbers into both sprites
-          lda #$71                  ;that resemble "200"
+          lda #SPR_SCORE+5          ;that resemble "200"
           sta Sprite_Tilenumber+4,y
           jmp ExJCGfx               ;then jump to leave (why not an rts here instead?)
 
 JumpingCoinTiles:
-      .byte $79, $7a, $7b, $7c
+      .byte SPR_COIN, SPR_COIN+1, SPR_COIN+2, SPR_COIN+3
 
 JCoinGfxHandler:
          ldy Misc_SprDataOffset,x    ;get coin/floatey number's OAM data offset
@@ -12268,11 +12435,16 @@ ExJCGfx: rts                         ;leave
 
 ;tiles arranged in top left, right, bottom left, right order
 PowerUpGfxTable:
-      .byte $05, $06, $07, $08 ;regular mushroom
-      .byte $90, $90, $91, $91 ;fire flower
-      .byte $8e, $8e, $8f, $8f ;star
-      .byte $05, $06, $07, $08 ;1-up mushroom
-      .byte $05, $06, $07, $08 ;poison mushroom
+;regular mushroom
+      .byte SPR_MUSHROOM, SPR_MUSHROOM+1, SPR_MUSHROOM+2, SPR_MUSHROOM+3
+;fire flower
+      .byte SPR_FLOWER, SPR_FLOWER, SPR_FLOWER+1, SPR_FLOWER+1
+;star
+      .byte SPR_STAR, SPR_STAR, SPR_STAR+1, SPR_STAR+1
+;1-up mushroom
+      .byte SPR_MUSHROOM, SPR_MUSHROOM+1, SPR_MUSHROOM+2, SPR_MUSHROOM+3
+;poison mushroom
+      .byte SPR_MUSHROOM, SPR_MUSHROOM+1, SPR_MUSHROOM+2, SPR_MUSHROOM+3
 
 PowerUpAttributes:
       .byte $02, $01, $02, $01, $03
@@ -12349,32 +12521,32 @@ PUpOfs: jmp SprObjectOffscrChk     ;jump to check to see if power-up is offscree
 ;tiles arranged in top left, right, middle left, right, bottom left, right order
 ;most enemies use more than one frame, thus have more than 6 tiles
 EnemyGraphicsTable:
-      .byte $ff, $ff, $c8, $c9, $ca, $cb ;buzzy beetle
-      .byte $ff, $ff, $cc, $cd, $ce, $cf
-      .byte $ff, $9a, $9b, $9c, $9d, $9e ;koopa troopa
-      .byte $ff, $a1, $a2, $a3, $a4, $a5
+      .byte SPR_BLANK, SPR_BLANK, $c8, $c9, $ca, $cb ;buzzy beetle
+      .byte SPR_BLANK, SPR_BLANK, $cc, $cd, $ce, $cf
+      .byte SPR_BLANK, $9a, $9b, $9c, $9d, $9e ;koopa troopa
+      .byte SPR_BLANK, $a1, $a2, $a3, $a4, $a5
       .byte $98, $9a, $99, $9c, $9d, $9e ;koopa paratroopa
       .byte $9f, $a1, $a0, $a3, $a4, $a5
-      .byte $ff, $ff, $c0, $c1, $c2, $c3 ;spiny
-      .byte $ff, $ff, $c4, $c5, $c6, $c7
-      .byte $ff, $ff, $bd, $bc, $bc, $bd ;spiny egg
-      .byte $ff, $ff, $bf, $be, $be, $bf
-      .byte $ff, $ff, $f2, $f2, $f5, $f5 ;blooper
+      .byte SPR_BLANK, SPR_BLANK, $c0, $c1, $c2, $c3 ;spiny
+      .byte SPR_BLANK, SPR_BLANK, $c4, $c5, $c6, $c7
+      .byte SPR_BLANK, SPR_BLANK, $bd, $bc, $bc, $bd ;spiny egg
+      .byte SPR_BLANK, SPR_BLANK, $bf, $be, $be, $bf
+      .byte SPR_BLANK, SPR_BLANK, $f2, $f2, $f5, $f5 ;blooper
       .byte $f2, $f2, $f3, $f3, $f4, $f4
-      .byte $ff, $ff, $d2, $d3, $d4, $d5 ;cheep-cheep
-      .byte $ff, $ff, $d6, $d3, $d7, $d5
-      .byte $ff, $ff, $a9, $aa, $ab, $ac ;goomba
-      .byte $ff, $ff, $a7, $a7, $a8, $a8 ;koopa shell (upside-down)
-      .byte $ff, $ff, $a6, $a6, $a8, $a8
-      .byte $ff, $ff, $a8, $a8, $a7, $a7 ;koopa shell
-      .byte $ff, $ff, $a8, $a8, $a6, $a6
-      .byte $ff, $ff, $d1, $d1, $d0, $d0 ;buzzy beetle shell (upside-down)
-      .byte $ff, $ff, $d1, $d1, $d0, $d0
-      .byte $ff, $ff, $d0, $d0, $d1, $d1 ;buzzy beetle shell
-      .byte $ff, $ff, $d0, $d0, $d1, $d1
-      .byte $ff, $ff, $ff, $ff, $ad, $ad ;defeated goomba
+      .byte SPR_BLANK, SPR_BLANK, $d2, $d3, $d4, $d5 ;cheep-cheep
+      .byte SPR_BLANK, SPR_BLANK, $d6, $d3, $d7, $d5
+      .byte SPR_BLANK, SPR_BLANK, $a9, $aa, $ab, $ac ;goomba
+      .byte SPR_BLANK, SPR_BLANK, $a7, $a7, $a8, $a8 ;koopa shell (upside-down)
+      .byte SPR_BLANK, SPR_BLANK, $a6, $a6, $a8, $a8
+      .byte SPR_BLANK, SPR_BLANK, $a8, $a8, $a7, $a7 ;koopa shell
+      .byte SPR_BLANK, SPR_BLANK, $a8, $a8, $a6, $a6
+      .byte SPR_BLANK, SPR_BLANK, $d1, $d1, $d0, $d0 ;buzzy beetle shell (upside-down)
+      .byte SPR_BLANK, SPR_BLANK, $d1, $d1, $d0, $d0
+      .byte SPR_BLANK, SPR_BLANK, $d0, $d0, $d1, $d1 ;buzzy beetle shell
+      .byte SPR_BLANK, SPR_BLANK, $d0, $d0, $d1, $d1
+      .byte SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_BLANK, $ad, $ad ;defeated goomba
       .byte $d8, $d9, $da, $db, $dc, $dc ;lakitu
-      .byte $ff, $ff, $dd, $dd, $dc, $dc
+      .byte SPR_BLANK, SPR_BLANK, $dd, $dd, $dc, $dc
       .byte $09, $0a, $0b, $0c, $0d, $0d ;princess/door to princess's room
       .byte $ed, $ed, $ee, $ee, $ef, $ef ;mushroom retainer
       .byte $ae, $af, $b0, $b1, $b2, $b3 ;hammer bro
@@ -12383,15 +12555,15 @@ EnemyGraphicsTable:
       .byte $b8, $b9, $ba, $bb, $b6, $b7
       .byte $f6, $f6, $f7, $f7, $f8, $f8 ;piranha plant
       .byte $f9, $f9, $fa, $fa, $f8, $f8
-      .byte $ff, $ff, $f0, $f0, $f1, $f1 ;podoboo
-      .byte $de, $df, $e0, $e1, $e2, $ff ;bowser front
+      .byte SPR_BLANK, SPR_BLANK, $f0, $f0, $f1, $f1 ;podoboo
+      .byte $de, $df, $e0, $e1, $e2, SPR_BLANK ;bowser front
       .byte $e3, $e4, $e5, $e6, $e7, $e8 ;bowser rear
-      .byte $de, $df, $e9, $ea, $e2, $ff ;front frame 2
+      .byte $de, $df, $e9, $ea, $e2, SPR_BLANK ;front frame 2
       .byte $e3, $e4, $e5, $e6, $eb, $ec ;rear frame 2
-      .byte $ff, $ff, $fb, $fc, $fd, $fe ;bullet bill
+      .byte SPR_BLANK, SPR_BLANK, $fb, $fc, $fd, $fe ;bullet bill
       .byte $96, $96, $97, $97, $96, $96 ;jumpspring
-      .byte $95, $95, $95, $95, $ff, $ff
-      .byte $94, $94, $ff, $ff, $ff, $ff
+      .byte $95, $95, $95, $95, SPR_BLANK, SPR_BLANK
+      .byte $94, $94, SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_BLANK
 
 EnemyGfxTableOffsets:
       .byte $0c, $0c, $00, $0c, $c0, $a8, $54, $3c
@@ -13231,39 +13403,65 @@ PlayerGfxTblOffsets:
 
 PlayerGraphicsTable:
 ;big player table
-      .byte $0e, $0f, $10, $11, $12, $13, $14, $15 ;walking frame 1
-      .byte $16, $17, $18, $19, $1a, $1b, $1c, $1d ;        frame 2
-      .byte $1e, $1f, $20, $21, $22, $23, $24, $25 ;        frame 3
-      .byte $26, $27, $28, $29, $2a, $2b, $2c, $2d ;skidding
-      .byte $2e, $2f, $30, $31, $32, $33, $34, $35 ;jumping
-      .byte $16, $17, $36, $37, $38, $39, $3a, $3b ;swimming frame 1
-      .byte $16, $17, $18, $19, $1a, $3e, $3a, $3b ;         frame 2
-      .byte $16, $17, $18, $19, $3c, $3d, $3a, $3b ;         frame 3
-      .byte $16, $17, $36, $37, $38, $39, $47, $48 ;climbing frame 1
-      .byte $16, $17, $18, $19, $1a, $1b, $49, $4a ;         frame 2
-      .byte $ff, $ff, $16, $17, $44, $45, $46, $46 ;crouching
-      .byte $16, $17, $36, $37, $38, $39, $1c, $1d ;fireball throwing
+;walking frame 1
+      .byte SPR_BIG_MARIO, SPR_BIG_MARIO+1, SPR_BIG_MARIO+2, SPR_BIG_MARIO+3, SPR_BIG_MARIO+4, SPR_BIG_MARIO+5, SPR_BIG_MARIO+6, SPR_BIG_MARIO+7
+;        frame 2
+      .byte SPR_BIG_MARIO+8, SPR_BIG_MARIO+9, SPR_BIG_MARIO+10, SPR_BIG_MARIO+11, SPR_BIG_MARIO+12, SPR_BIG_MARIO+13, SPR_BIG_MARIO+14, SPR_BIG_MARIO+15
+;        frame 3
+      .byte SPR_BIG_MARIO+16, SPR_BIG_MARIO+17, SPR_BIG_MARIO+18, SPR_BIG_MARIO+19, SPR_BIG_MARIO+20, SPR_BIG_MARIO+21, SPR_BIG_MARIO+22, SPR_BIG_MARIO+23
+;skidding
+      .byte SPR_BIG_MARIO+24, SPR_BIG_MARIO+25, SPR_BIG_MARIO+26, SPR_BIG_MARIO+27, SPR_BIG_MARIO+28, SPR_BIG_MARIO+29, SPR_BIG_MARIO+30, SPR_BIG_MARIO+31
+;jumping
+      .byte SPR_BIG_MARIO+32, SPR_BIG_MARIO+33, SPR_BIG_MARIO+34, SPR_BIG_MARIO+35, SPR_BIG_MARIO+36, SPR_BIG_MARIO+37, SPR_BIG_MARIO+38, SPR_BIG_MARIO+39
+;swimming frame 1
+      .byte SPR_BIG_MARIO+8, SPR_BIG_MARIO+9, SPR_BIG_MARIO+40, SPR_BIG_MARIO+41, SPR_BIG_MARIO+42, SPR_BIG_MARIO+43, SPR_BIG_MARIO+44, SPR_BIG_MARIO+45
+;         frame 2
+      .byte SPR_BIG_MARIO+8, SPR_BIG_MARIO+9, SPR_BIG_MARIO+10, SPR_BIG_MARIO+11, SPR_BIG_MARIO+12, SPR_BIG_MARIO+47, SPR_BIG_MARIO+44, SPR_BIG_MARIO+45
+;         frame 3
+      .byte SPR_BIG_MARIO+8, SPR_BIG_MARIO+9, SPR_BIG_MARIO+10, SPR_BIG_MARIO+11, SPR_BIG_MARIO+48, SPR_BIG_MARIO+49, SPR_BIG_MARIO+44, SPR_BIG_MARIO+45
+;climbing frame 1
+      .byte SPR_BIG_MARIO+8, SPR_BIG_MARIO+9, SPR_BIG_MARIO+40, SPR_BIG_MARIO+41, SPR_BIG_MARIO+42, SPR_BIG_MARIO+43, SPR_BIG_MARIO+50, SPR_BIG_MARIO+51
+;         frame 2
+      .byte SPR_BIG_MARIO+8, SPR_BIG_MARIO+9, SPR_BIG_MARIO+10, SPR_BIG_MARIO+11, SPR_BIG_MARIO+12, SPR_BIG_MARIO+13, SPR_BIG_MARIO+52, SPR_BIG_MARIO+53
+;crouching
+      .byte SPR_BLANK, SPR_BLANK, SPR_BIG_MARIO+8, SPR_BIG_MARIO+9, SPR_BIG_MARIO+54, SPR_BIG_MARIO+55, SPR_BIG_MARIO+56, SPR_BIG_MARIO+56
+;fireball throwing
+      .byte SPR_BIG_MARIO+8, SPR_BIG_MARIO+9, SPR_BIG_MARIO+40, SPR_BIG_MARIO+41, SPR_BIG_MARIO+42, SPR_BIG_MARIO+43, SPR_BIG_MARIO+14, SPR_BIG_MARIO+15
 
 ;small player table
-      .byte $ff, $ff, $ff, $ff, $4b, $4c, $4d, $4e ;walking frame 1
-      .byte $ff, $ff, $ff, $ff, $4f, $50, $51, $52 ;        frame 2
-      .byte $ff, $ff, $ff, $ff, $53, $50, $54, $55 ;        frame 3
-      .byte $ff, $ff, $ff, $ff, $56, $57, $58, $59 ;skidding
-      .byte $ff, $ff, $ff, $ff, $4b, $5a, $5b, $5c ;jumping
-      .byte $ff, $ff, $ff, $ff, $4b, $4c, $5d, $5e ;swimming frame 1
-      .byte $ff, $ff, $ff, $ff, $4b, $4c, $5d, $60 ;         frame 2
-      .byte $ff, $ff, $ff, $ff, $4b, $4c, $61, $62 ;         frame 3
-      .byte $ff, $ff, $ff, $ff, $4b, $4c, $65, $66 ;climbing frame 1
-      .byte $ff, $ff, $ff, $ff, $53, $50, $67, $68 ;         frame 2
-      .byte $ff, $ff, $ff, $ff, $69, $69, $6a, $6a ;killed
+;walking frame 1
+      .byte SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_SMALL_MARIO, SPR_SMALL_MARIO+1, SPR_SMALL_MARIO+2, SPR_SMALL_MARIO+3
+;        frame 2
+      .byte SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_SMALL_MARIO+4, SPR_SMALL_MARIO+5, SPR_SMALL_MARIO+6, SPR_SMALL_MARIO+7
+;        frame 3
+      .byte SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_SMALL_MARIO+8, SPR_SMALL_MARIO+9, SPR_SMALL_MARIO+10, SPR_SMALL_MARIO+11
+;skidding
+      .byte SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_SMALL_MARIO+12, SPR_SMALL_MARIO+13, SPR_SMALL_MARIO+14, SPR_SMALL_MARIO+15
+;jumping
+      .byte SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_SMALL_MARIO, SPR_SMALL_MARIO+16, SPR_SMALL_MARIO+17, SPR_SMALL_MARIO+18
+;swimming frame 1
+      .byte SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_SMALL_MARIO, SPR_SMALL_MARIO+1, SPR_SMALL_MARIO+19, SPR_SMALL_MARIO+20
+;         frame 2
+      .byte SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_SMALL_MARIO, SPR_SMALL_MARIO+1, SPR_SMALL_MARIO+19, SPR_SMALL_MARIO+22
+;         frame 3
+      .byte SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_SMALL_MARIO, SPR_SMALL_MARIO+1, SPR_SMALL_MARIO+23, SPR_SMALL_MARIO+24
+;climbing frame 1
+      .byte SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_SMALL_MARIO, SPR_SMALL_MARIO+1, SPR_SMALL_MARIO+25, SPR_SMALL_MARIO+26
+;         frame 2
+      .byte SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_SMALL_MARIO+8, SPR_SMALL_MARIO+9, SPR_SMALL_MARIO+27, SPR_SMALL_MARIO+28
+;killed
+      .byte SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_SMALL_MARIO+29, SPR_SMALL_MARIO+29, SPR_SMALL_MARIO+30, SPR_SMALL_MARIO+30
 
 ;used by both player sizes
-      .byte $ff, $ff, $ff, $ff, $53, $50, $64, $64 ;small player standing
-      .byte $ff, $ff, $0e, $0f, $40, $41, $63, $63 ;intermediate grow frame
-      .byte $0e, $0f, $40, $41, $42, $42, $43, $43 ;big player standing
+;small player standing
+      .byte SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_SMALL_MARIO+8, SPR_SMALL_MARIO+9, SPR_SMALL_MARIO+31, SPR_SMALL_MARIO+31
+;intermediate grow frame
+      .byte SPR_BLANK, SPR_BLANK, SPR_BIG_MARIO, SPR_BIG_MARIO+1, SPR_BIG_MARIO+57, SPR_BIG_MARIO+58, SPR_BIG_MARIO+61, SPR_BIG_MARIO+61
+;big player standing
+      .byte SPR_BIG_MARIO, SPR_BIG_MARIO+1, SPR_BIG_MARIO+57, SPR_BIG_MARIO+58, SPR_BIG_MARIO+59, SPR_BIG_MARIO+59, SPR_BIG_MARIO+60, SPR_BIG_MARIO+60
 
 SwimKickTileNum:
-      .byte $3f, $5f
+      .byte SPR_BIG_MARIO+46, SPR_SMALL_MARIO+21
 
 PlayerGfxHandler:
         lda InjuryTimer             ;if player's injured invincibility timer
@@ -13909,6 +14107,10 @@ StartTheGame:
          sta DiskIOTask
          sta OperMode_Task
          sta DemoTimer
+         lda #$03                 ;load common bg CHR (TO-DO: replace this)
+         sta FME7Command
+         lda #$09
+         sta FME7Parameter
          rts
 
 AttractModeDiskRoutines:
@@ -14147,7 +14349,7 @@ InitScore:    sta ScoreAndCoinDisplay,x   ;clear player score and coin display
 ExitMenu:     rts
 
 MenuCursorTemplate:
-      .byte $06, $22, $4b, $83, $60, $24, $24, $00
+      .byte $06, $22, $4b, $83, BG_CURSOR, BG_BLANK, BG_BLANK, $00
 
 DrawMenuCursor:
               ldy #$07                  ;read eight bytes to be read by transfer routine
@@ -14158,9 +14360,9 @@ CursorDataRead:
               bpl CursorDataRead
               lda SelectedPlayer        ;check selected player
               beq ExitCursor            ;if set to mario game, we're done
-              lda #$24                  ;otherwise, load blank tile in mario game position
+              lda #BG_BLANK             ;otherwise, load blank tile in mario game position
               sta VRAM_Buffer+3
-              lda #$60                  ;then load shroom icon tile in luigi game position
+              lda #BG_CURSOR            ;then load shroom icon tile in luigi game position
               sta VRAM_Buffer+5
 ExitCursor:   lda CurrentGame           ;if complete mode move shroom down
               bne :+
@@ -14219,10 +14421,10 @@ DrawWorldLevel:
              inx
              txa
              sta VRAM_Buffer+3,y
-             lda #$25
+             lda #'-'
              ldx HardWorldFlag
              beq :+
-             lda #$29
+             lda #'*'
 :            sta VRAM_Buffer+4,y
              ldx LevelNumber
              inx
@@ -14344,6 +14546,10 @@ InitializeGame:
             lda #$01
 :           sta LevelSet
             jsr LoadGameTileset      ;load game-appropiate CHR data
+            lda #$03                 ;load title screen CHR (TO-DO: replace this)
+            sta FME7Command
+            lda #$0a
+            sta FME7Parameter
             ldy #<Memory_InitializeGame ;clear all memory as in initialization procedure,
             ldx #>Memory_InitializeGame
             jsr InitializeMemory     ;but this time, clear only as far as $076f
@@ -14412,7 +14618,7 @@ DrawLine:   ora #%01000000                ;add bit to indicate repeated tile
             sta VRAM_Buffer+1,x
             lda $01                       ;write how many stars to draw for this line
             sta VRAM_Buffer+2,x
-            lda #$ff                      ;write tile for title screen stars
+            lda #BG_LOGO+42               ;write tile for title screen stars
             sta VRAM_Buffer+3,x
             lda #$00                      ;put null terminator at the end
             sta VRAM_Buffer+4,x
@@ -14425,11 +14631,11 @@ NoStars:    rts                           ;now we're done!
 ;-------------------------------------------------------------------------------------
 
 TitleScreenGfxData_Complete:
-       .incbin "title_complete.bin"
+       .incbin "tilemaps/title_complete.bin"
 TitleScreenGfxData_SMB1:
-       .incbin "title_smb1.bin"
+       .incbin "tilemaps/title_smb1.bin"
 TitleScreenGfxData_SMB2:
-       .incbin "title_smb2.bin"
+       .incbin "tilemaps/title_smb2.bin"
 
 ;-------------------------------------------------------------------------------------------------
 ;$06 - used to store vertical length of pipe
@@ -14759,8 +14965,8 @@ BlueTints:
     .byte $01, $02, $11, $21
 
 TwoBlankRows:
-    .byte $26, $86, $55, $24
-    .byte $26, $a6, $55, $24
+    .byte $26, $86, $55, BG_BLANK
+    .byte $26, $a6, $55, BG_BLANK
     .byte $00
 
 FadeToBlue:
@@ -15102,9 +15308,9 @@ FantasyWorld9Msg:
 
 ThanksForPlayingMsg:
     ;clears "CONTINUE", "SAVE", and "RETRY" text
-    .byte $21, $e0, $60, $24
-    .byte $22, $40, $60, $24
-    .byte $22, $a0, $60, $24
+    .byte $21, $e0, $60, BG_BLANK
+    .byte $22, $40, $60, BG_BLANK
+    .byte $22, $a0, $60, BG_BLANK
 
     ;"THANKS FOR PLAYING"
     .byte $21, $e5, 21
@@ -15176,7 +15382,7 @@ WriteNTAddr:  sta PPU_ADDRESS
               sta PPU_ADDRESS
               ldx #$04                  ;clear name table with blank tile $24
               ldy #$c0
-              lda #$24
+              lda #BG_BLANK
 InitNTLoop:   sta PPU_DATA              ;count out exactly 768 tiles
               dey
               bne InitNTLoop
@@ -15485,7 +15691,7 @@ InitializeSaveData:
 ClrSLp: lda #$00
         sta SaveData,x
         dex
-		cpx #$ff
+        cpx #$ff
         bne ClrSLp
         ldx #$0f
 SaveLp: lda SaveHeader,x        ;write save data header
@@ -15513,11 +15719,13 @@ DoErase:
 
 ;-------------------------------------------------------------------------------------
 BGTiles:
-      .byte $09,$01
+      .byte $02,$03
 SprTiles:
-      .byte $0a,$04
+      .byte $0d,$0e
 FontTiles:
-      .byte $08,$00
+      .byte $00,$01
+SprTiles2:
+      .byte $13,$14
 
 LoadGameTileset:
       ; load tileset based on menu selection
@@ -15539,9 +15747,31 @@ LoadGameTileset:
       tay
       lda BGTiles,y
       sta FME7Parameter
-      lda #$04
+      lda #$05
       sta FME7Command
       lda SprTiles,y
+      sta FME7Parameter
+      lda #$07
+      sta FME7Command
+      lda SprTiles2,y
+      sta FME7Parameter
+
+      ; load generic banks (TO-DO: replace this)
+      lda #$02
+      sta FME7Command
+      lda #$06
+      sta FME7Parameter
+      lda #$03
+      sta FME7Command
+      lda #$09
+      sta FME7Parameter
+      lda #$04
+      sta FME7Command
+      lda #$0b
+      sta FME7Parameter
+      lda #$06
+      sta FME7Command
+      lda #$12
       sta FME7Parameter
       rts
 
@@ -15562,9 +15792,9 @@ LoadFontTileset:
       lda #CHR_SMB2
 @write_font:
       tay
-	  lda FontTiles,y
+      lda FontTiles,y
       sta FME7Parameter
-	  rts
+      rts
 
 ;------------------------------------------------------------------------------------
 
@@ -15923,38 +16153,4 @@ IRQHandler_SplitXY:
         .word RESETHandler
         .word IRQHandler
 
-.segment "CHRROM"
-
-;SMB2 FONT
-.incbin "chr/fonts/smb2.chr"
-
-;SMB2 BG
-.incbin "chr/bg/smb2.chr"
-.incbin "chr/bg/main-1f2.chr"
-.incbin "chr/bg/main-2.chr"
-
-;SMB2 SPR
-.incbin "chr/spr/smb2.chr"
-.incbin "chr/spr/main-1.chr"
-.incbin "chr/spr/main-2.chr"
-.incbin "chr/spr/main-3.chr"
-
-;SMB1 FONT
-.incbin "chr/fonts/smb1.chr"
-
-;SMB1 BG
-.incbin "chr/bg/smb1.chr"
-
-;SMB1 SPR
-.incbin "chr/spr/smb1.chr"
-
-;PAUSE SPR
-.incbin "chr/spr/pause.chr"
-
-;TITLE BG
-.incbin "chr/bg/title.chr"
-
-;WATER ANIMATION FRAMES
-.incbin "chr/bg/main-1f1.chr"
-.incbin "chr/bg/main-1f3.chr"
-.incbin "chr/bg/main-1f4.chr"
+.include "chrrom.asm"
