@@ -962,7 +962,7 @@ EndGameText:   sty VRAM_Buffer_Offset    ;update VRAM buffer offset
                bne ExWGT                 ;then branch to leave
                lda DifficultyFlag        ;if not easy mode, print lives display
                bne PrepLivesDisp
-               lda #$ce                  ;otherwise put crown tile in its place
+               lda #'*'                  ;otherwise put crown tile in its place (TO-DO: put crown back in CHR)
                sta VRAM_Buffer+5         ;and branch ahead to display world/level numbers
                bne PutWorldNum
 PrepLivesDisp: lda #$aa                  ;fix attribute data for lives display
@@ -1555,7 +1555,7 @@ Palette1_MTiles:
   .byte BG_GROUND_CASTLE, BG_GROUND_CASTLE+1, BG_GROUND_CASTLE, BG_GROUND_CASTLE+1
 
 ;bridge
-  .byte BG_BRIDGE+1, BG_BLANK, BG_BRIDGE+2, BG_BLANK
+  .byte BG_BRIDGE+1, BG_BLANK, BG_BRIDGE+1, BG_BLANK
 
 ;bullet bill cannon barrel
   .byte BG_CANNON, BG_CANNON+2, BG_CANNON+1, BG_CANNON+3
@@ -9099,7 +9099,7 @@ SFlmX:   sta $00                     ;store value here
 SetGfxF: jsr RelativeEnemyPosition   ;get new relative coordinates
          lda Enemy_State,x           ;if bowser's flame not in normal state,
          bne ExFl                    ;branch to leave
-         lda #$72                    ;otherwise, continue
+         lda #SPR_BOWSER_FLAME       ;otherwise, continue
          sta $00                     ;write first tile number
          ldy #$02                    ;load attributes without vertical flip by default
          lda FrameCounter
@@ -9196,7 +9196,7 @@ StarFlagXPosAdder:
       .byte $00, $08, $00, $08
 
 StarFlagTileData:
-      .byte $75, $76, $77, $78
+      .byte SPR_STAR_FLAG, SPR_STAR_FLAG+1, SPR_STAR_FLAG+2, SPR_STAR_FLAG+3
 
 RunStarFlagObj:
       lda #$00                 ;initialize enemy frenzy buffer
@@ -12082,7 +12082,7 @@ DrawVine:
          sta Sprite_Attributes+12,y
          sta Sprite_Attributes+20,y
          ldx #$05                   ;set tiles for six sprites
-VineTL:  lda #$93                   ;set tile number for sprite
+VineTL:  lda #SPR_VINE+1            ;set tile number for sprite
          sta Sprite_Tilenumber,y
          iny                        ;move offset to next sprite data
          iny
@@ -12093,7 +12093,7 @@ VineTL:  lda #$93                   ;set tile number for sprite
          ldy $02                    ;get original offset
          lda $00                    ;get offset to vine adding data
          bne SkpVTop                ;if offset not zero, skip this part
-         lda #$92
+         lda #SPR_VINE
          sta Sprite_Tilenumber,y    ;set other tile number for top of vine
 SkpVTop: ldx #$00                   ;start with the first sprite again
 ChkFTop: lda VineStart_Y_Position   ;get original starting vertical coordinate
@@ -12315,10 +12315,10 @@ SetLast2Platform:
       ldy Enemy_SprDataOffset,x   ;get OAM data offset
       sta Sprite_Y_Position+16,y  ;store vertical coordinate or offscreen
       sta Sprite_Y_Position+20,y  ;coordinate into last two sprites as Y coordinate
-      lda #$04                    ;load default tile for platform (mushroom)
+      lda #SPR_LIFT               ;load default tile for platform (girder or mushroom)
       ldx CloudTypeOverride
       beq SetPlatformTilenum      ;if cloud level override flag not set, use
-      lda #$83                    ;otherwise load other tile for platform (puff)
+      lda #SPR_LIFT_CLOUD         ;otherwise load other tile for platform (puff)
 
 SetPlatformTilenum:
         ldx ObjectOffset            ;get enemy object buffer offset
@@ -12521,49 +12521,90 @@ PUpOfs: jmp SprObjectOffscrChk     ;jump to check to see if power-up is offscree
 ;tiles arranged in top left, right, middle left, right, bottom left, right order
 ;most enemies use more than one frame, thus have more than 6 tiles
 EnemyGraphicsTable:
-      .byte SPR_BLANK, SPR_BLANK, $c8, $c9, $ca, $cb ;buzzy beetle
-      .byte SPR_BLANK, SPR_BLANK, $cc, $cd, $ce, $cf
-      .byte SPR_BLANK, $9a, $9b, $9c, $9d, $9e ;koopa troopa
-      .byte SPR_BLANK, $a1, $a2, $a3, $a4, $a5
-      .byte $98, $9a, $99, $9c, $9d, $9e ;koopa paratroopa
-      .byte $9f, $a1, $a0, $a3, $a4, $a5
-      .byte SPR_BLANK, SPR_BLANK, $c0, $c1, $c2, $c3 ;spiny
-      .byte SPR_BLANK, SPR_BLANK, $c4, $c5, $c6, $c7
-      .byte SPR_BLANK, SPR_BLANK, $bd, $bc, $bc, $bd ;spiny egg
-      .byte SPR_BLANK, SPR_BLANK, $bf, $be, $be, $bf
-      .byte SPR_BLANK, SPR_BLANK, $f2, $f2, $f5, $f5 ;blooper
-      .byte $f2, $f2, $f3, $f3, $f4, $f4
-      .byte SPR_BLANK, SPR_BLANK, $d2, $d3, $d4, $d5 ;cheep-cheep
-      .byte SPR_BLANK, SPR_BLANK, $d6, $d3, $d7, $d5
-      .byte SPR_BLANK, SPR_BLANK, $a9, $aa, $ab, $ac ;goomba
-      .byte SPR_BLANK, SPR_BLANK, $a7, $a7, $a8, $a8 ;koopa shell (upside-down)
-      .byte SPR_BLANK, SPR_BLANK, $a6, $a6, $a8, $a8
-      .byte SPR_BLANK, SPR_BLANK, $a8, $a8, $a7, $a7 ;koopa shell
-      .byte SPR_BLANK, SPR_BLANK, $a8, $a8, $a6, $a6
-      .byte SPR_BLANK, SPR_BLANK, $d1, $d1, $d0, $d0 ;buzzy beetle shell (upside-down)
-      .byte SPR_BLANK, SPR_BLANK, $d1, $d1, $d0, $d0
-      .byte SPR_BLANK, SPR_BLANK, $d0, $d0, $d1, $d1 ;buzzy beetle shell
-      .byte SPR_BLANK, SPR_BLANK, $d0, $d0, $d1, $d1
-      .byte SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_BLANK, $ad, $ad ;defeated goomba
-      .byte $d8, $d9, $da, $db, $dc, $dc ;lakitu
-      .byte SPR_BLANK, SPR_BLANK, $dd, $dd, $dc, $dc
-      .byte $09, $0a, $0b, $0c, $0d, $0d ;princess/door to princess's room
-      .byte $ed, $ed, $ee, $ee, $ef, $ef ;mushroom retainer
-      .byte $ae, $af, $b0, $b1, $b2, $b3 ;hammer bro
-      .byte $ae, $af, $b4, $b5, $b6, $b7
-      .byte $b8, $b9, $ba, $bb, $b2, $b3
-      .byte $b8, $b9, $ba, $bb, $b6, $b7
-      .byte $f6, $f6, $f7, $f7, $f8, $f8 ;piranha plant
-      .byte $f9, $f9, $fa, $fa, $f8, $f8
-      .byte SPR_BLANK, SPR_BLANK, $f0, $f0, $f1, $f1 ;podoboo
-      .byte $de, $df, $e0, $e1, $e2, SPR_BLANK ;bowser front
-      .byte $e3, $e4, $e5, $e6, $e7, $e8 ;bowser rear
-      .byte $de, $df, $e9, $ea, $e2, SPR_BLANK ;front frame 2
-      .byte $e3, $e4, $e5, $e6, $eb, $ec ;rear frame 2
-      .byte SPR_BLANK, SPR_BLANK, $fb, $fc, $fd, $fe ;bullet bill
-      .byte $96, $96, $97, $97, $96, $96 ;jumpspring
-      .byte $95, $95, $95, $95, SPR_BLANK, SPR_BLANK
-      .byte $94, $94, SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_BLANK
+;buzzy beetle
+      .byte SPR_BLANK, SPR_BLANK, SPR_BUZZY, SPR_BUZZY+1, SPR_BUZZY+2, SPR_BUZZY+3
+      .byte SPR_BLANK, SPR_BLANK, SPR_BUZZY+4, SPR_BUZZY+5, SPR_BUZZY+6, SPR_BUZZY+7
+
+;koopa troopa
+      .byte SPR_BLANK, SPR_KOOPA, SPR_KOOPA+1, SPR_KOOPA+2, SPR_KOOPA+3, SPR_KOOPA+4
+      .byte SPR_BLANK, SPR_KOOPA+7, SPR_KOOPA+8, SPR_KOOPA+9, SPR_KOOPA+10, SPR_KOOPA+11
+;koopa paratroopa
+      .byte SPR_KOOPA+5, SPR_KOOPA, SPR_KOOPA+6, SPR_KOOPA+2, SPR_KOOPA+3, SPR_KOOPA+4
+      .byte SPR_KOOPA+12, SPR_KOOPA+7, SPR_KOOPA+13, SPR_KOOPA+9, SPR_KOOPA+10, SPR_KOOPA+11
+
+;spiny
+      .byte SPR_BLANK, SPR_BLANK, SPR_SPINY+4, SPR_SPINY+5, SPR_SPINY+6, SPR_SPINY+7
+      .byte SPR_BLANK, SPR_BLANK, SPR_SPINY+8, SPR_SPINY+9, SPR_SPINY+10, SPR_SPINY+11
+;spiny egg
+      .byte SPR_BLANK, SPR_BLANK, SPR_SPINY+1, SPR_SPINY, SPR_SPINY, SPR_SPINY+1
+      .byte SPR_BLANK, SPR_BLANK, SPR_SPINY+3, SPR_SPINY+2, SPR_SPINY+2, SPR_SPINY+3
+
+;blooper
+      .byte SPR_BLANK, SPR_BLANK, SPR_BLOOBER, SPR_BLOOBER, SPR_BLOOBER+1, SPR_BLOOBER+1
+      .byte SPR_BLOOBER, SPR_BLOOBER, SPR_BLOOBER+2, SPR_BLOOBER+2, SPR_BLOOBER+3, SPR_BLOOBER+3
+
+;cheep-cheep
+      .byte SPR_BLANK, SPR_BLANK, SPR_CHEEP, SPR_CHEEP+1, SPR_CHEEP+2, SPR_CHEEP+3
+      .byte SPR_BLANK, SPR_BLANK, SPR_CHEEP+4, SPR_CHEEP+1, SPR_CHEEP+5, SPR_CHEEP+3
+
+;goomba
+      .byte SPR_BLANK, SPR_BLANK, SPR_GOOMBA, SPR_GOOMBA+1, SPR_GOOMBA+2, SPR_GOOMBA+3
+
+;koopa shell (upside-down)
+      .byte SPR_BLANK, SPR_BLANK, SPR_KOOPA+14, SPR_KOOPA+14, SPR_KOOPA+15, SPR_KOOPA+15
+      .byte SPR_BLANK, SPR_BLANK, SPR_KOOPA+16, SPR_KOOPA+16, SPR_KOOPA+15, SPR_KOOPA+15
+;koopa shell
+      .byte SPR_BLANK, SPR_BLANK, SPR_KOOPA+15, SPR_KOOPA+15, SPR_KOOPA+14, SPR_KOOPA+14
+      .byte SPR_BLANK, SPR_BLANK, SPR_KOOPA+15, SPR_KOOPA+15, SPR_KOOPA+16, SPR_KOOPA+16
+
+;buzzy beetle shell (upside-down)
+      .byte SPR_BLANK, SPR_BLANK, SPR_BUZZY+9, SPR_BUZZY+9, SPR_BUZZY+8, SPR_BUZZY+8
+      .byte SPR_BLANK, SPR_BLANK, SPR_BUZZY+9, SPR_BUZZY+9, SPR_BUZZY+8, SPR_BUZZY+8
+;buzzy beetle shell
+      .byte SPR_BLANK, SPR_BLANK, SPR_BUZZY+8, SPR_BUZZY+8, SPR_BUZZY+9, SPR_BUZZY+9
+      .byte SPR_BLANK, SPR_BLANK, SPR_BUZZY+8, SPR_BUZZY+8, SPR_BUZZY+9, SPR_BUZZY+9
+
+;defeated goomba
+      .byte SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_GOOMBA+4, SPR_GOOMBA+4
+
+;lakitu
+      .byte SPR_LAKITU, SPR_LAKITU+1, SPR_LAKITU+2, SPR_LAKITU+3, SPR_LAKITU+4, SPR_LAKITU+4
+      .byte SPR_BLANK, SPR_BLANK, SPR_LAKITU+5, SPR_LAKITU+5, SPR_LAKITU+4, SPR_LAKITU+4
+
+;princess
+      .byte SPR_PRINCESS, SPR_PRINCESS+1, SPR_PRINCESS+2, SPR_PRINCESS+3, SPR_PRINCESS+4, SPR_PRINCESS+4
+;mushroom retainer
+      .byte SPR_RETAINER, SPR_RETAINER, SPR_RETAINER+1, SPR_RETAINER+1, SPR_RETAINER+2, SPR_RETAINER+2
+
+;hammer bro
+      .byte SPR_HAMMER_BRO, SPR_HAMMER_BRO+1, SPR_HAMMER_BRO+2, SPR_HAMMER_BRO+3, SPR_HAMMER_BRO+4, SPR_HAMMER_BRO+5
+      .byte SPR_HAMMER_BRO, SPR_HAMMER_BRO+1, SPR_HAMMER_BRO+6, SPR_HAMMER_BRO+7, SPR_HAMMER_BRO+8, SPR_HAMMER_BRO+9
+      .byte SPR_HAMMER_BRO+10, SPR_HAMMER_BRO+11, SPR_HAMMER_BRO+12, SPR_HAMMER_BRO+13, SPR_HAMMER_BRO+4, SPR_HAMMER_BRO+5
+      .byte SPR_HAMMER_BRO+10, SPR_HAMMER_BRO+11, SPR_HAMMER_BRO+12, SPR_HAMMER_BRO+13, SPR_HAMMER_BRO+8, SPR_HAMMER_BRO+9
+
+;piranha plant
+      .byte SPR_PIRANHA, SPR_PIRANHA, SPR_PIRANHA+1, SPR_PIRANHA+1, SPR_PIRANHA+2, SPR_PIRANHA+2
+      .byte SPR_PIRANHA+3, SPR_PIRANHA+3, SPR_PIRANHA+4, SPR_PIRANHA+4, SPR_PIRANHA+2, SPR_PIRANHA+2
+
+;podoboo
+      .byte SPR_BLANK, SPR_BLANK, SPR_PODOBOO, SPR_PODOBOO, SPR_PODOBOO+1, SPR_PODOBOO+1
+
+;bowser front
+      .byte SPR_BOWSER, SPR_BOWSER+1, SPR_BOWSER+4, SPR_BOWSER+5, SPR_BOWSER+8, SPR_BLANK
+;bowser rear
+      .byte SPR_BOWSER+2, SPR_BOWSER+3, SPR_BOWSER+6, SPR_BOWSER+7, SPR_BOWSER+9, SPR_BOWSER+10
+;front frame 2
+      .byte SPR_BOWSER, SPR_BOWSER+1, SPR_BOWSER+11, SPR_BOWSER+12, SPR_BOWSER+8, SPR_BLANK
+;rear frame 2
+      .byte SPR_BOWSER+2, SPR_BOWSER+3, SPR_BOWSER+6, SPR_BOWSER+7, SPR_BOWSER+13, SPR_BOWSER+14
+
+;bullet bill
+      .byte SPR_BLANK, SPR_BLANK, SPR_BULLET, SPR_BULLET+1, SPR_BULLET+2, SPR_BULLET+3
+
+;jumpspring
+      .byte SPR_SPRING, SPR_SPRING, SPR_SPRING+1, SPR_SPRING+1, SPR_SPRING, SPR_SPRING
+      .byte SPR_SPRING+2, SPR_SPRING+2, SPR_SPRING+2, SPR_SPRING+2, SPR_BLANK, SPR_BLANK
+      .byte SPR_SPRING+3, SPR_SPRING+3, SPR_BLANK, SPR_BLANK, SPR_BLANK, SPR_BLANK
 
 EnemyGfxTableOffsets:
       .byte $0c, $0c, $00, $0c, $c0, $a8, $54, $3c
@@ -13102,7 +13143,8 @@ MoveESprColOffscreen:
 ;$05 - relative X position
 
 DefaultBlockObjTiles:
-      .byte $02, $02, $03, $03             ;brick w/ line (these are sprite tiles, not BG!)
+;brick w/ line (these are sprite tiles, not BG!)
+      .byte SPR_BRICK, SPR_BRICK, SPR_BRICK+1, SPR_BRICK+1
 
 DrawBlock:
            lda Block_Rel_YPos            ;get relative vertical coordinate of block object
@@ -13126,13 +13168,13 @@ DBlkLoop:  lda DefaultBlockObjTiles,x    ;get left tile number
            lda AreaType
            cmp #$01                      ;check for ground level type area
            beq ChkRep                    ;if found, branch to next part
-           lda #$03
+           lda #SPR_BRICK+1
            sta Sprite_Tilenumber,y       ;otherwise remove brick tiles with lines
            sta Sprite_Tilenumber+4,y     ;and replace then with lineless brick tiles
 ChkRep:    lda Block_Metatile,x          ;check replacement metatile
            cmp #$c5                      ;if not used block metatile, then
            bne BlkOffscr                 ;branch ahead to use current graphics
-           lda #$8d                      ;set A for used block tile
+           lda #SPR_BLOCK                ;set A for used block tile
            iny                           ;increment Y to write to tile bytes
            jsr DumpFourSpr               ;do sub to dump into all four sprites
            dey                           ;return Y to original offset
@@ -13172,7 +13214,7 @@ ExDBlk: rts
 DrawBrickChunks:
          lda #$03                   ;set palette bits
          sta $00
-         lda #$8c                   ;and set tile number for brick chunks
+         lda #SPR_BRICK_CHUNK       ;and set tile number for brick chunks
 DChunks: ldy Block_SprDataOffset,x  ;get OAM data offset
          iny                        ;increment to start with tile bytes in OAM
          jsr DumpFourSpr            ;do sub to dump tile number into all four sprites
@@ -13244,7 +13286,7 @@ DrawFirebar:
        pha                      ;save result to stack
        and #$01                 ;mask out all but last bit
        clc
-       adc #$7d                 ;set either tile $7d or $7e as fireball tile
+       adc #SPR_FIREBALL        ;use one of two tiles as fireball tile
        sta Sprite_Tilenumber,y  ;thus tile changes every four frames
        pla                      ;get from stack
        lsr                      ;divide by four again
@@ -13258,7 +13300,7 @@ FireA: sta Sprite_Attributes,y  ;store attribute byte and leave
 ;-------------------------------------------------------------------------------------
 
 ExplosionTiles:
-      .byte $81, $80, $7f
+      .byte SPR_FIREBALL+2, SPR_FIREBALL+3, SPR_FIREBALL+4
 
 DrawExplosion_Fireball:
       ldy Alt_SprDataOffset,x  ;get OAM data offset of alternate sort for fireball's explosion
@@ -13313,7 +13355,7 @@ KillFireBall:
 
 DrawSmallPlatform:
        ldy Enemy_SprDataOffset,x   ;get OAM data offset
-       lda #$04                    ;load tile number for small platforms
+       lda #SPR_LIFT               ;load tile number for small platforms
        iny                         ;increment offset for tile numbers
        jsr DumpSixSpr              ;dump tile number into all six sprites
        iny                         ;increment offset for attributes
@@ -13386,7 +13428,7 @@ DrawBubble:
         sta Sprite_X_Position,y     ;store as X coordinate here
         lda Bubble_Rel_YPos         ;get relative vertical coordinate
         sta Sprite_Y_Position,y     ;store as Y coordinate here
-        lda #$82
+        lda #SPR_BUBBLE
         sta Sprite_Tilenumber,y     ;put air bubble tile into OAM data
         lda #$02
         sta Sprite_Attributes,y     ;set attribute byte
@@ -14169,8 +14211,10 @@ DiskScreen:
       inc DiskIOTask        ;move on to next subtask involving the disk drive
       rts
 
-GameOverCursorData:
-  .byte $04, $02, $30
+GameOverCursorData_SMB1:
+  .byte SPR_BRICK_CHUNK, $03, $30
+GameOverCursorData_SMB2:
+  .byte SPR_LIFT, $02, $30
 
 GameOverCursorY:
   .byte $77, $8f, $a7
@@ -14192,7 +14236,7 @@ GameOverMenu:
             lda #Sfx_Fireball            ;play sound effect when moving cursor
             sta Square1SoundQueue
 ChgSel:     ldy #$02
-ChgSelLoop: lda GameOverCursorData,y     ;set up cursor sprite tile, attribute
+ChgSelLoop: lda GameOverCursorData_SMB2,y     ;set up cursor sprite tile, attribute
             sta Sprite_Data+1,y          ;and X position in sprite OAM data
             dey
             bpl ChgSelLoop
@@ -14513,7 +14557,7 @@ TScrClear:   sta VRAM_Buffer-1,x
              dex
              bne TScrClear
              jsr DrawMenuCursor         ;draw player select cursor
-             jsr DrawTitleScreenStars   ;draw stars for beaten games
+             ;jsr DrawTitleScreenStars   ;draw stars for beaten games
              inc ScreenRoutineTask      ;move onto next task
              rts
 
@@ -14631,11 +14675,470 @@ NoStars:    rts                           ;now we're done!
 ;-------------------------------------------------------------------------------------
 
 TitleScreenGfxData_Complete:
-       .incbin "tilemaps/title_complete.bin"
+       ;logo
+       .byte $20, $85, 1
+       .byte BG_LOGO
+       .byte $20, $86, $40+20
+       .byte BG_LOGO+1
+       .byte $20, $9a, 1
+       .byte BG_LOGO+2
+       .byte $20, $a5, $c0+13
+       .byte BG_LOGO+3
+       .byte $20, $a6, 10
+       .byte BG_LOGO+8, BG_LOGO+9, BG_LOGO+16, BG_LOGO+16, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8, BG_LOGO+18
+       .byte BG_LOGO+22, BG_LOGO+9
+       .byte $20, $b0, $40+10
+       .byte BG_COLOR_2
+       .byte $20, $ba, $c0+13
+       .byte BG_LOGO+4
+       .byte $20, $c6, 10
+       .byte BG_LOGO+10, BG_LOGO+11, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+20
+       .byte BG_LOGO+19, BG_LOGO+23
+       .byte $20, $d0, $40+10
+       .byte BG_COLOR_2
+       .byte $20, $e6, 10
+       .byte BG_LOGO+12, BG_LOGO+13, BG_LOGO+12, BG_LOGO+17, BG_LOGO+19, BG_LOGO+26, BG_LOGO+12, BG_LOGO+18
+       .byte BG_LOGO+19, BG_LOGO+24
+       .byte $20, $f0, $40+10
+       .byte BG_COLOR_2
+       .byte $21, $06, 10
+       .byte BG_LOGO+14, BG_LOGO+15, BG_LOGO+14, BG_LOGO+15, BG_LOGO+25, BG_COLOR_2, BG_LOGO+14, BG_LOGO+21
+       .byte BG_LOGO+25, BG_LOGO+25
+       .byte $21, $10, $40+10
+       .byte BG_COLOR_2
+       .byte $21, $26, 20
+       .byte BG_LOGO+8, BG_LOGO+32, BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+16
+       .byte BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_LOGO+22, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8
+       .byte BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_COLOR_2
+       .byte $21, $46, 20
+       .byte BG_LOGO+19, BG_LOGO+28, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+       .byte BG_LOGO+19, BG_LOGO+28, BG_COLOR_2, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+       .byte BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_COLOR_2
+       .byte $21, $66, $40+6
+       .byte BG_LOGO+19
+       .byte $21, $6c, 14
+       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+23, BG_LOGO+19
+       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+10, BG_LOGO+29, BG_COLOR_2
+       .byte $21, $86, 20
+       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+22, BG_LOGO+31, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+       .byte BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+       .byte BG_LOGO+19, BG_LOGO+30, BG_LOGO+27, BG_COLOR_2
+       .byte $21, $a6, 20
+       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19
+       .byte BG_LOGO+12, BG_LOGO+17, BG_COLOR_2, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+19, BG_LOGO+12
+       .byte BG_LOGO+17, BG_LOGO+12, BG_LOGO+17, BG_LOGO+16
+       .byte $21, $c6, $40+8
+       .byte BG_LOGO+25
+       .byte $21, $ce, 12
+       .byte BG_LOGO+14, BG_LOGO+15, BG_COLOR_2, BG_LOGO+25, BG_LOGO+26, BG_LOGO+25, BG_LOGO+25, BG_LOGO+14
+       .byte BG_LOGO+15, BG_LOGO+14, BG_LOGO+15, BG_LOGO+25
+       .byte $21, $e6, 20
+       .byte BG_LOGO+8, BG_LOGO+18, BG_LOGO+8, BG_LOGO+9, BG_LOGO+8, BG_LOGO+32, BG_LOGO+9, BG_LOGO+22
+       .byte BG_LOGO+9, BG_LOGO+16, BG_COLOR_2, BG_LOGO+8, BG_LOGO+18, BG_LOGO+22, BG_LOGO+18, BG_LOGO+8
+       .byte BG_LOGO+18, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
+       .byte $22, $06, 20
+       .byte BG_LOGO+19, BG_LOGO+21, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+28, BG_LOGO+19
+       .byte BG_LOGO+17, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+20, BG_LOGO+57, BG_LOGO+58, BG_LOGO+19
+       .byte BG_LOGO+20, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
+       .byte $22, $26, 20
+       .byte BG_LOGO+12, BG_LOGO+18, BG_LOGO+12, BG_LOGO+17, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19
+       .byte BG_LOGO+26, BG_LOGO+12, BG_LOGO+18, BG_LOGO+12, BG_LOGO+18, BG_LOGO+59, BG_LOGO+60, BG_LOGO+12
+       .byte BG_LOGO+18, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
+       .byte $22, $45, 1
+       .byte BG_LOGO+5
+       .byte $22, $46, 20
+       .byte BG_LOGO+35, BG_LOGO+41, BG_LOGO+35, BG_LOGO+36, BG_LOGO+33, BG_LOGO+33, BG_LOGO+33, BG_LOGO+33
+       .byte BG_LOGO+6, BG_LOGO+35, BG_LOGO+41, BG_LOGO+35, BG_LOGO+41, BG_LOGO+61, BG_LOGO+62, BG_LOGO+35
+       .byte BG_LOGO+41, BG_LOGO+6, BG_LOGO+6, BG_LOGO+6
+       .byte $22, $5a, 1
+       .byte BG_LOGO+7
+
+       ;options and top score
+       .byte $22, $8d, 10
+       .byte "MARIO GAME"
+       .byte $22, $cd, 10
+       .byte "LUIGI GAME"
+       .byte $23, $0b, 4
+       .byte "TOP-"
+       .byte $23, $15, 1
+       .byte "0"
+
+       ;attribute data
+       .byte $23, $c9, $40+6
+       .byte %01010101
+       .byte $23, $d1, $40+6
+       .byte %01010101
+       .byte $23, $d9, $40+6
+       .byte %01010101
+       .byte $23, $e1, $40+6
+       .byte %01010101
+       .byte $23, $ea, 4
+       .byte %01000100, %10101010, %10101010, %10101010
+       .byte $23, $f2, 4
+       .byte %01011000, %01011010, %01011010, %01010010
+
+       ;terminator
+       .byte $00
 TitleScreenGfxData_SMB1:
-       .incbin "tilemaps/title_smb1.bin"
+       ;logo
+       .byte $20, $85, 1
+       .byte BG_LOGO
+       .byte $20, $86, $40+20
+       .byte BG_LOGO+1
+       .byte $20, $9a, 1
+       .byte BG_LOGO+2
+       .byte $20, $a5, $c0+9
+       .byte BG_LOGO+3
+       .byte $20, $a6, 10
+       .byte BG_LOGO+8, BG_LOGO+9, BG_LOGO+16, BG_LOGO+16, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8, BG_LOGO+18
+       .byte BG_LOGO+22, BG_LOGO+9
+       .byte $20, $b0, $40+10
+       .byte BG_COLOR_2
+       .byte $20, $ba, $c0+9
+       .byte BG_LOGO+4
+       .byte $20, $c6, 10
+       .byte BG_LOGO+10, BG_LOGO+11, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+20
+       .byte BG_LOGO+19, BG_LOGO+23
+       .byte $20, $d0, $40+10
+       .byte BG_COLOR_2
+       .byte $20, $e6, 10
+       .byte BG_LOGO+12, BG_LOGO+13, BG_LOGO+12, BG_LOGO+17, BG_LOGO+19, BG_LOGO+26, BG_LOGO+12, BG_LOGO+18
+       .byte BG_LOGO+19, BG_LOGO+24
+       .byte $20, $f0, $40+10
+       .byte BG_COLOR_2
+       .byte $21, $06, 10
+       .byte BG_LOGO+14, BG_LOGO+15, BG_LOGO+14, BG_LOGO+15, BG_LOGO+25, BG_COLOR_2, BG_LOGO+14, BG_LOGO+21
+       .byte BG_LOGO+25, BG_LOGO+25
+       .byte $21, $10, $40+10
+       .byte BG_COLOR_2
+       .byte $21, $26, 20
+       .byte BG_LOGO+8, BG_LOGO+32, BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+16
+       .byte BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_LOGO+22, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8
+       .byte BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_COLOR_2
+       .byte $21, $46, 20
+       .byte BG_LOGO+19, BG_LOGO+28, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+       .byte BG_LOGO+19, BG_LOGO+28, BG_COLOR_2, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+       .byte BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_COLOR_2
+       .byte $21, $66, $40+6
+       .byte BG_LOGO+19
+       .byte $21, $6c, 14
+       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+23, BG_LOGO+19
+       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+10, BG_LOGO+29, BG_COLOR_2
+       .byte $21, $86, 20
+       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+22, BG_LOGO+31, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+       .byte BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+       .byte BG_LOGO+19, BG_LOGO+30, BG_LOGO+27, BG_COLOR_2
+       .byte $21, $a6, 20
+       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19
+       .byte BG_LOGO+12, BG_LOGO+17, BG_COLOR_2, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+19, BG_LOGO+12
+       .byte BG_LOGO+17, BG_LOGO+12, BG_LOGO+17, BG_LOGO+16
+       .byte $21, $c5, 1
+       .byte BG_LOGO+5
+       .byte $21, $c6, $40+8
+       .byte BG_LOGO+33
+       .byte $21, $ce, 12
+       .byte BG_LOGO+35, BG_LOGO+36, BG_LOGO+6, BG_LOGO+33, BG_LOGO+34, BG_LOGO+33, BG_LOGO+33, BG_LOGO+35
+       .byte BG_LOGO+36, BG_LOGO+35, BG_LOGO+36, BG_LOGO+33
+       .byte $21, $da, 1
+       .byte BG_LOGO+7
+       .byte $21, $ed, 14
+       .byte "c1985 NINTENDO"
+
+       ;options and top score
+       .byte $22, $4d, 10
+       .byte "MARIO GAME"
+       .byte $22, $8d, 10
+       .byte "LUIGI GAME"
+       .byte $22, $eb, 4
+       .byte "TOP-"
+       .byte $22, $f5, 1
+       .byte "0"
+
+       ;attribute data
+       .byte $23, $c9, $40+6
+       .byte %01010101
+       .byte $23, $d1, $40+6
+       .byte %01010101
+       .byte $23, $d9, $40+6
+       .byte %01010101
+       .byte $23, $e2, 4
+       .byte %01000000, %10100000, %10100000, %10100000
+       .byte $23, $ea, 4
+       .byte %10000100, %10101010, %10101010, %00101010
+
+       ;terminator
+       .byte $00
 TitleScreenGfxData_SMB2:
-       .incbin "tilemaps/title_smb2.bin"
+       ;logo
+       .byte $20, $84, 1
+       .byte BG_LOGO
+       .byte $20, $85, $40+23
+       .byte BG_LOGO+1
+       .byte $20, $9c, 1
+       .byte BG_LOGO+2
+       .byte $20, $a4, $c0+9
+       .byte BG_LOGO+3
+       .byte $20, $a5, 10
+       .byte BG_LOGO+8, BG_LOGO+9, BG_LOGO+16, BG_LOGO+16, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8, BG_LOGO+18
+       .byte BG_LOGO+22, BG_LOGO+9
+       .byte $20, $af, $40+13
+       .byte BG_COLOR_2
+       .byte $20, $bc, $c0+9
+       .byte BG_LOGO+4
+       .byte $20, $c5, 10
+       .byte BG_LOGO+10, BG_LOGO+11, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+20
+       .byte BG_LOGO+19, BG_LOGO+23
+       .byte $20, $cf, $40+13
+       .byte BG_COLOR_2
+       .byte $20, $e5, 10
+       .byte BG_LOGO+12, BG_LOGO+13, BG_LOGO+12, BG_LOGO+17, BG_LOGO+19, BG_LOGO+26, BG_LOGO+12, BG_LOGO+18
+       .byte BG_LOGO+19, BG_LOGO+24
+       .byte $20, $ef, $40+13
+       .byte BG_COLOR_2
+       .byte $21, $05, 10
+       .byte BG_LOGO+14, BG_LOGO+15, BG_LOGO+14, BG_LOGO+15, BG_LOGO+25, BG_COLOR_2, BG_LOGO+14, BG_LOGO+21
+       .byte BG_LOGO+25, BG_LOGO+25
+       .byte $21, $0f, $40+13
+       .byte BG_COLOR_2
+       .byte $21, $25, 23
+       .byte BG_LOGO+8, BG_LOGO+32, BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+16
+       .byte BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_LOGO+22, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8
+       .byte BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_COLOR_2, BG_LOGO+8, BG_LOGO+9
+       .byte $21, $45, 23
+       .byte BG_LOGO+19, BG_LOGO+28, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+       .byte BG_LOGO+19, BG_LOGO+28, BG_COLOR_2, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+       .byte BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_COLOR_2, BG_COLOR_2, BG_LOGO+19, BG_LOGO+28
+       .byte $21, $65, $40+6
+       .byte BG_LOGO+19
+       .byte $21, $6b, 17
+       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+23, BG_LOGO+19
+       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+10, BG_LOGO+29, BG_COLOR_2, BG_COLOR_2, BG_LOGO+37
+       .byte BG_LOGO+38
+       .byte $21, $85, 23
+       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+22, BG_LOGO+31, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+       .byte BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+       .byte BG_LOGO+19, BG_LOGO+30, BG_LOGO+27, BG_COLOR_2, BG_COLOR_2, BG_LOGO+39, BG_LOGO+40
+       .byte $21, $a5, 23
+       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19
+       .byte BG_LOGO+12, BG_LOGO+17, BG_COLOR_2, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+19, BG_LOGO+12
+       .byte BG_LOGO+17, BG_LOGO+12, BG_LOGO+17, BG_LOGO+16, BG_COLOR_2, BG_LOGO+22, BG_LOGO+18
+       .byte $21, $c4, 1
+       .byte BG_LOGO+5
+       .byte $21, $c5, $40+8
+       .byte BG_LOGO+33
+       .byte $21, $cd, 15
+       .byte BG_LOGO+35, BG_LOGO+36, BG_LOGO+6, BG_LOGO+33, BG_LOGO+34, BG_LOGO+33, BG_LOGO+33, BG_LOGO+35
+       .byte BG_LOGO+36, BG_LOGO+35, BG_LOGO+36, BG_LOGO+33, BG_LOGO+6, BG_LOGO+33, BG_LOGO+41
+       .byte $21, $dc, 1
+       .byte BG_LOGO+7
+       .byte $21, $ef, 14
+       .byte "c1986 NINTENDO"
+
+       ;options and top score
+       .byte $22, $4d, 10
+       .byte "MARIO GAME"
+       .byte $22, $8d, 10
+       .byte "LUIGI GAME"
+       .byte $22, $eb, 4
+       .byte "TOP-"
+       .byte $22, $f5, 1
+       .byte "0"
+
+       ;attribute data
+       .byte $23, $c9, $40+6
+       .byte %01010101
+       .byte $23, $cf, 1
+       .byte %00010001
+       .byte $23, $d1, $40+5
+       .byte %01010101
+       .byte $23, $d6, 2
+       .byte %11011101, %00010001
+       .byte $23, $d9, $40+5
+       .byte %01010101
+       .byte $23, $de, 2
+       .byte %01011101, %00010001
+       .byte $23, $e2, 4
+       .byte %01000000, %10100000, %10100000, %10100000
+       .byte $23, $ea, 4
+       .byte %10010101, %10101010, %10101010, %00101010
+
+       ;terminator
+       .byte $00
+TitleScreenGfxData_VSSMB:
+       ;logo
+       .byte $20, $85, 1
+       .byte BG_LOGO
+       .byte $20, $86, $40+20
+       .byte BG_LOGO+1
+       .byte $20, $9a, 1
+       .byte BG_LOGO+2
+       .byte $20, $a5, $c0+9
+       .byte BG_LOGO+3
+       .byte $20, $a6, 20
+       .byte BG_LOGO+16, BG_LOGO+16, BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_COLOR_2, BG_LOGO+8, BG_LOGO+9
+       .byte BG_LOGO+16, BG_LOGO+16, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8, BG_LOGO+18, BG_LOGO+22, BG_LOGO+9
+       .byte BG_COLOR_2, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
+       .byte $20, $ba, $c0+9
+       .byte BG_LOGO+4
+       .byte $20, $c6, 20
+       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+10, BG_LOGO+11, BG_COLOR_2, BG_COLOR_2, BG_LOGO+10, BG_LOGO+11
+       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+20, BG_LOGO+19, BG_LOGO+23
+       .byte BG_COLOR_2, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
+       .byte $20, $e6, 20
+       .byte BG_LOGO+43, BG_LOGO+44, BG_LOGO+12, BG_LOGO+13, BG_LOGO+16, BG_COLOR_2, BG_LOGO+12, BG_LOGO+13
+       .byte BG_LOGO+12, BG_LOGO+17, BG_LOGO+19, BG_LOGO+26, BG_LOGO+12, BG_LOGO+18, BG_LOGO+19, BG_LOGO+24
+       .byte BG_COLOR_2, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
+       .byte $21, $06, 20
+       .byte BG_LOGO+45, BG_LOGO+46, BG_LOGO+14, BG_LOGO+15, BG_LOGO+25, BG_COLOR_2, BG_LOGO+14, BG_LOGO+15
+       .byte BG_LOGO+14, BG_LOGO+15, BG_LOGO+25, BG_COLOR_2, BG_LOGO+14, BG_LOGO+21, BG_LOGO+25, BG_LOGO+25
+       .byte BG_COLOR_2, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
+       .byte $21, $26, 20
+       .byte BG_LOGO+8, BG_LOGO+32, BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+16
+       .byte BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_LOGO+22, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8
+       .byte BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_COLOR_2
+       .byte $21, $46, 20
+       .byte BG_LOGO+19, BG_LOGO+28, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+       .byte BG_LOGO+19, BG_LOGO+28, BG_COLOR_2, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+       .byte BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_COLOR_2
+       .byte $21, $66, $40+6
+       .byte BG_LOGO+19
+       .byte $21, $6c, 14
+       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+23, BG_LOGO+19
+       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+10, BG_LOGO+29, BG_COLOR_2
+       .byte $21, $86, 20
+       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+22, BG_LOGO+31, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+       .byte BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+       .byte BG_LOGO+19, BG_LOGO+30, BG_LOGO+27, BG_COLOR_2
+       .byte $21, $a6, 20
+       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19
+       .byte BG_LOGO+12, BG_LOGO+17, BG_COLOR_2, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+19, BG_LOGO+12
+       .byte BG_LOGO+17, BG_LOGO+12, BG_LOGO+17, BG_LOGO+16
+       .byte $21, $c5, 1
+       .byte BG_LOGO+5
+       .byte $21, $c6, $40+8
+       .byte BG_LOGO+33
+       .byte $21, $ce, 12
+       .byte BG_LOGO+35, BG_LOGO+36, BG_LOGO+6, BG_LOGO+33, BG_LOGO+34, BG_LOGO+33, BG_LOGO+33, BG_LOGO+35
+       .byte BG_LOGO+36, BG_LOGO+35, BG_LOGO+36, BG_LOGO+33
+       .byte $21, $da, 1
+       .byte BG_LOGO+7
+       .byte $21, $ed, 14
+       .byte "c1986 NINTENDO"
+
+       ;options and top score
+       .byte $22, $4d, 10
+       .byte "MARIO GAME"
+       .byte $22, $8d, 10
+       .byte "LUIGI GAME"
+       .byte $22, $eb, 4
+       .byte "TOP-"
+       .byte $22, $f5, 1
+       .byte "0"
+
+       ;attribute data
+       .byte $23, $c9, $40+6
+       .byte %01010101
+       .byte $23, $d1, $40+6
+       .byte %01010101
+       .byte $23, $d9, $40+6
+       .byte %01010101
+       .byte $23, $e2, 4
+       .byte %01000000, %10100000, %10100000, %10100000
+       .byte $23, $ea, 4
+       .byte %10000100, %10101010, %10101010, %00101010
+
+       ;terminator
+       .byte $00
+TitleScreenGfxData_ANNSMB:
+       ;logo
+       .byte $20, $85, 1
+       .byte BG_LOGO
+       .byte $20, $86, $40+20
+       .byte BG_LOGO+1
+       .byte $20, $9a, 1
+       .byte BG_LOGO+2
+       .byte $20, $a5, $c0+9
+       .byte BG_LOGO+3
+       .byte $20, $a6, 20
+       .byte BG_LOGO+47, BG_LOGO+48, BG_LOGO+49, BG_LOGO+50, BG_LOGO+51, BG_LOGO+52, BG_LOGO+53, BG_LOGO+54
+       .byte BG_LOGO+55, BG_LOGO+56, BG_LOGO+8, BG_LOGO+9, BG_LOGO+16, BG_LOGO+16, BG_LOGO+22, BG_LOGO+9
+       .byte BG_LOGO+8, BG_LOGO+18, BG_LOGO+22, BG_LOGO+9
+       .byte $20, $ba, $c0+9
+       .byte BG_LOGO+4
+       .byte $20, $c6, $40+10
+       .byte BG_COLOR_2
+       .byte $20, $d0, 10
+       .byte BG_LOGO+10, BG_LOGO+11, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+20
+       .byte BG_LOGO+19, BG_LOGO+23
+       .byte $20, $e6, $40+10
+       .byte BG_COLOR_2
+       .byte $20, $f0, 10
+       .byte BG_LOGO+12, BG_LOGO+13, BG_LOGO+12, BG_LOGO+17, BG_LOGO+19, BG_LOGO+26, BG_LOGO+12, BG_LOGO+18
+       .byte BG_LOGO+19, BG_LOGO+24
+       .byte $21, $06, $40+10
+       .byte BG_COLOR_2
+       .byte $21, $10, 10
+       .byte BG_LOGO+14, BG_LOGO+15, BG_LOGO+14, BG_LOGO+15, BG_LOGO+25, BG_COLOR_2, BG_LOGO+14, BG_LOGO+21
+       .byte BG_LOGO+25, BG_LOGO+25
+       .byte $21, $26, 20
+       .byte BG_LOGO+8, BG_LOGO+32, BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+16
+       .byte BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_LOGO+22, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8
+       .byte BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_COLOR_2
+       .byte $21, $46, 20
+       .byte BG_LOGO+19, BG_LOGO+28, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+       .byte BG_LOGO+19, BG_LOGO+28, BG_COLOR_2, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+       .byte BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_COLOR_2
+       .byte $21, $66, $40+6
+       .byte BG_LOGO+19
+       .byte $21, $6c, 14
+       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+23, BG_LOGO+19
+       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+10, BG_LOGO+29, BG_COLOR_2
+       .byte $21, $86, 20
+       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+22, BG_LOGO+31, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+       .byte BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+       .byte BG_LOGO+19, BG_LOGO+30, BG_LOGO+27, BG_COLOR_2
+       .byte $21, $a6, 20
+       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19
+       .byte BG_LOGO+12, BG_LOGO+17, BG_COLOR_2, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+19, BG_LOGO+12
+       .byte BG_LOGO+17, BG_LOGO+12, BG_LOGO+17, BG_LOGO+16
+       .byte $21, $c5, 1
+       .byte BG_LOGO+5
+       .byte $21, $c6, $40+8
+       .byte BG_LOGO+33
+       .byte $21, $ce, 12
+       .byte BG_LOGO+35, BG_LOGO+36, BG_LOGO+6, BG_LOGO+33, BG_LOGO+34, BG_LOGO+33, BG_LOGO+33, BG_LOGO+35
+       .byte BG_LOGO+36, BG_LOGO+35, BG_LOGO+36, BG_LOGO+33
+       .byte $21, $da, 1
+       .byte BG_LOGO+7
+       .byte $21, $ed, 14
+
+       ;copyright string
+       .byte "c1986 NINTENDO"
+
+       ;options and top score
+       .byte $22, $4d, 10
+       .byte "MARIO GAME"
+       .byte $22, $8d, 10
+       .byte "LUIGI GAME"
+       .byte $22, $eb, 4
+       .byte "TOP-"
+       .byte $22, $f5, 1
+       .byte "0"
+
+       ;attribute data
+       .byte $23, $c9, $40+6
+       .byte %01010101
+       .byte $23, $d1, $40+6
+       .byte %01010101
+       .byte $23, $d9, $40+6
+       .byte %01010101
+       .byte $23, $e2, 4
+       .byte %01000000, %10100000, %10100000, %10100000
+       .byte $23, $ea, 4
+       .byte %10000100, %10101010, %10101010, %00101010
+
+       ;terminator
+       .byte $00
 
 ;-------------------------------------------------------------------------------------------------
 ;$06 - used to store vertical length of pipe
