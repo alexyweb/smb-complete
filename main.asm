@@ -1,5 +1,10 @@
-.include "inc/defines.inc"
+; DEFINES
+.include "inc/registers.inc"
+.include "inc/ram.inc"
 .include "inc/wram.inc"
+
+; CONSTANTS
+.include "inc/constants.inc"
 .include "inc/charmap.inc"
 
 ;-------------------------------------------------------------------------------------
@@ -22,17 +27,20 @@
 .res $c000 - *, $ff
 .org $8000
 .res $c000 - *, $ff
-.org $8000
-.res $c000 - *, $ff
 
 .segment "SOUNDPRG"
 .org $8000
 .include "sound.asm"
 .res $c000 - *, $ff
 
-.segment "LEVELPRG"
+.segment "LEVELPRG1"
 .org $8000
 .include "levels.asm"
+.res $c000 - *, $ff
+
+.segment "LEVELPRG2"
+.org $8000
+.include "levels2.asm"
 .res $c000 - *, $ff
 
 .segment "LOADER"
@@ -182,10 +190,8 @@ ChkPauseTimer: lda GamePauseTimer     ;check if pause timer is still counting do
                cmp #33                ;load pause graphics
                bcc ExitPause
                sbc #33
-               lda #$04
-               sta FME7Command
                lda #$0b
-               sta FME7Parameter
+               sta Mirror_CHRBank_4
 UnpausingCHR:  cmp #33                ;reload normal tiles
                bcc ExitPause
                sbc #23
@@ -199,7 +205,7 @@ ChkPauseState: lda GamePauseStatus    ;is game currently paused?
                sta $00
                lda #>ContinueMenuSelect
                sta $01
-               lda #$02
+               lda #3
                jsr MenuSelectionLogic ;operate pause menu
                ldy #$02               ;place cursor next to selected option
 CursorLoop:    lda #$11               ;blank tile by default
@@ -350,7 +356,6 @@ VictoryModeSubsForW8andD:
     .word FadeToBlue
     .word EraseLivesLines
     .word RunMushroomRetainers
-    .word EndingDiskRoutines
 
 ;-------------------------------------------------------------------------------------
 
@@ -383,14 +388,16 @@ VMExit:  rts
 
 ;-------------------------------------------------------------------------------------
 TitleScreen_VRAMAddrs:
-      .byte VRAM_NT_COMPLETE, VRAM_NT_SMB1, VRAM_NT_SMB2
+      .byte VRAM_NT_COMPLETE, VRAM_NT_SMB1, VRAM_NT_SMB2, VRAM_NT_VSSMB, VRAM_NT_ANNSMB
 
 DrawTitleScreen:
-    lda OperMode       ;if not in attract mode, do not draw title screen
-    bne IncModeTask    ;yes, this routine is run in other modes
-    ldy CurrentGame
+    lda OperMode              ;if not in attract mode, do not draw title screen
+    bne IncModeTask           ;yes, this routine is run in other modes
+    lda #$0a                  ;load CHR data for title screen
+    sta Mirror_CHRBank_3
+    ldy CurrentGame           ;fetch correct offset for game's title screen
     lda TitleScreen_VRAMAddrs,y
-    jmp SetVRAMAddr_B  ;otherwise set up VRAM address controller accordingly
+    jmp SetVRAMAddr_B         ;set up VRAM address controller accordingly
 
 ;-------------------------------------------------------------------------------------
 
@@ -522,7 +529,7 @@ ChkHardM:  ldy PrimaryHardMode       ;have we already set primary hard mode?
 StoreWNum: sta WorldNumber           ;update the world number
            ldy CurrentGame
            sta ContinueWorld,y
-           jsr RunLoadAreaPointer    ;get pointer for the next area
+           jsr LoadAreaPointer       ;get pointer for the next area
            inc FetchNewGameTimerFlag ;and get a new game timer
 EndExit:   rts
 
@@ -686,6 +693,7 @@ ScreenRoutines:
 InitScreen:
       jsr MoveAllSpritesOffscreen ;initialize all sprites including sprite #0
       jsr InitializeNameTables    ;and erase both name and attribute tables
+      jsr LoadGameTileset         ;load game-appropiate CHR data
       lda OperMode
       beq NextSubtask             ;if in attact mode, do not set pointer control
 InitScreenPalette:
@@ -962,7 +970,7 @@ EndGameText:   sty VRAM_Buffer_Offset    ;update VRAM buffer offset
                bne ExWGT                 ;then branch to leave
                lda DifficultyFlag        ;if not easy mode, print lives display
                bne PrepLivesDisp
-               lda #'*'                  ;otherwise put crown tile in its place (TO-DO: put crown back in CHR)
+               lda #BG_CROWN             ;otherwise put crown tile in its place
                sta VRAM_Buffer+5         ;and branch ahead to display world/level numbers
                bne PutWorldNum
 PrepLivesDisp: lda #$aa                  ;fix attribute data for lives display
@@ -1637,112 +1645,20 @@ Palette3_MTiles:
   .byte BG_AXE, BG_AXE+2, BG_AXE+1, BG_AXE+3
 
 ;------------------------------------------------------------------------------------
-
-WaterPaletteData:
-  .byte $3f, $00, $20
-  .byte $0f, $15, $12, $25
-  .byte $0f, $3a, $1a, $0f
-  .byte $0f, $30, $12, $0f
-  .byte $0f, $27, $12, $0f
-  .byte $0f, $16, $27, $18
-  .byte $0f, $1a, $30, $27
-  .byte $0f, $16, $30, $27
-  .byte $0f, $0f, $30, $10
-  .byte $00
-
-GroundPaletteData:
-  .byte $3f, $00, $20
-  .byte $0f, $29, $1a, $0f
-  .byte $0f, $36, $17, $0f
-  .byte $0f, $30, $21, $0f
-  .byte $0f, $27, $17, $0f
-  .byte $0f, $16, $27, $18
-  .byte $0f, $1a, $30, $27
-  .byte $0f, $16, $30, $27
-  .byte $0f, $0f, $36, $17
-  .byte $00
-
-UndergroundPaletteData:
-  .byte $3f, $00, $20
-  .byte $0f, $29, $1a, $09
-  .byte $0f, $3c, $1c, $0f
-  .byte $0f, $30, $21, $1c
-  .byte $0f, $27, $17, $1c
-  .byte $0f, $16, $27, $18
-  .byte $0f, $1c, $36, $17
-  .byte $0f, $16, $30, $27
-  .byte $0f, $0c, $3c, $1c
-  .byte $00
-
-CastlePaletteData:
-  .byte $3f, $00, $20
-  .byte $0f, $30, $10, $00
-  .byte $0f, $30, $10, $00
-  .byte $0f, $30, $16, $00
-  .byte $0f, $27, $17, $00
-  .byte $0f, $16, $27, $18
-  .byte $0f, $1c, $36, $17
-  .byte $0f, $16, $30, $27
-  .byte $0f, $00, $30, $10
-  .byte $00
-
-SnowPaletteData:
-  .byte $3f, $00, $04
-  .byte $0f, $30, $00, $10
-  .byte $00
-
-MushroomPaletteData:
-  .byte $3f, $00, $04
-  .byte $22, $27, $16, $0f
-  .byte $00
-
-BowserPaletteData:
-  .byte $3f, $14, $04
-  .byte $0f, $1a, $30, $27
-  .byte $00
-
-MarioThankYouMsg:
-  .byte $25, $48, 16
-  .byte "THANK YOU MARIO!"
-  .byte $00
-
-LuigiThankYouMsg:
-  .byte $25, $48, 16
-  .byte "THANK YOU LUIGI!"
-  .byte $00
-
-MarioThankYouMsgEnd:
-  .byte $25, $28, 15
-  .byte "THANK YOU MARIO"
-  .byte $00
-
-LuigiThankYouMsgEnd:
-  .byte $25, $28, 15
-  .byte "THANK YOU LUIGI"
-  .byte $00
-  
-MushroomRetainerMsg:
-  .byte $25, $c5, 22
-  .byte "BUT OUR PRINCESS IS IN"
-  .byte $26, $05, 15
-  .byte "ANOTHER CASTLE!"
-  .byte $00
-
-;------------------------------------------------------------------------------------
 ;$00 - used to store status bar nybbles
 ;$02 - used as temp vram offset
 ;$03 - used to store length of status bar number
 
+; MOVED TO LOADER
 ;status bar name table offset and length data
-StatusBarData:
-      .byte $22, $ef, $06 ; top score display on title screen
-      .byte $20, $62, $06 ; player score
-      .byte $20, $6d, $03 ; coin tally
-      .byte $20, $7a, $03 ; game timer
-      .byte $23, $0f, $06 ; top score display on title screen (complete mode)
+;StatusBarData:
+;      .byte $22, $ef, $06 ; top score display on title screen
+;      .byte $20, $62, $06 ; player score
+;      .byte $20, $6d, $02 ; coin tally
+;      .byte $20, $7a, $03 ; game timer
 
 StatusBarOffset:
-      .byte $06, $0c, $12, $18, $06
+      .byte $06, $0c, $12, $18
 
 PrintStatusBarNumbers:
       sta $00            ;store player-specific offset
@@ -1754,43 +1670,43 @@ PrintStatusBarNumbers:
       lsr
 
 OutputNumbers:
-             and #%00001111           ;mask out high nybble
-             cmp #$06
+             and #%00001111               ;mask out high nybble
+             cmp #$04
              bcs ExitOutputN
-             pha                      ;save incremented value to stack for now and
-             sta $01                  ;multiply by 3 to use as offset
+             pha                          ;save incremented value to stack for now and
+             sta $01                      ;multiply by 3 to use as offset
              asl
              clc
              adc $01
              tay
-             ldx VRAM_Buffer_Offset   ;get current buffer pointer
-SetupNums:   lda StatusBarData,y      ;write vram address high
+             ldx VRAM_Buffer_Offset       ;get current buffer pointer
+SetupNums:   lda WRAM_StatusBarData,y     ;write vram address high
              sta VRAM_Buffer,x
-             lda StatusBarData+1,y    ;write vram address low and length of thing
-             sta VRAM_Buffer+1,x      ;we're printing to the buffer
-             lda StatusBarData+2,y
+             lda WRAM_StatusBarData+1,y   ;write vram address low and length of thing
+             sta VRAM_Buffer+1,x          ;we're printing to the buffer
+             lda WRAM_StatusBarData+2,y
              sta VRAM_Buffer+2,x
-             sta $03                  ;save length byte in counter
-             stx $02                  ;and buffer pointer elsewhere for now
-             pla                      ;pull original incremented value from stack
+             sta $03                      ;save length byte in counter
+             stx $02                      ;and buffer pointer elsewhere for now
+             pla                          ;pull original incremented value from stack
              tax
-             lda StatusBarOffset,x    ;load offset to value we want to write
+             lda StatusBarOffset,x        ;load offset to value we want to write
              sec
-             sbc StatusBarData+2,y    ;subtract from length byte we read before
-             tay                      ;use value as offset to display digits
+             sbc WRAM_StatusBarData+2,y   ;subtract from length byte we read before
+             tay                           ;use value as offset to display digits
              ldx $02
-DigitPLoop:  lda DisplayDigits,y      ;write digits to the buffer
+DigitPLoop:  lda DisplayDigits,y           ;write digits to the buffer
              sta VRAM_Buffer+3,x
              inx
              iny
-             dec $03                  ;do this until all the digits are written
+             dec $03                       ;do this until all the digits are written
              bne DigitPLoop
-             lda #$00                 ;put null terminator at end
+             lda #$00                      ;put null terminator at end
              sta VRAM_Buffer+3,x
-             inx                      ;increment buffer pointer by 3
+             inx                           ;increment buffer pointer by 3
              inx
              inx
-             stx VRAM_Buffer_Offset   ;store it in case we want to use it again
+             stx VRAM_Buffer_Offset        ;store it in case we want to use it again
 ExitOutputN: rts
 
 DigitsMathRoutine:
@@ -1850,6 +1766,11 @@ DefaultSprOffsets:
 
 ;-------------------------------------------------------------------------------------
 
+SecondaryHardMode_World:
+        .byte World5, World4, World4, World4
+SecondaryHardMode_Level:
+        .byte Level3, Level4, Level2, Level4
+
 InitializeArea:
                ldy #<Memory_InitializeArea ;clear all memory again, only as far as $074b
                ldx #>Memory_InitializeArea
@@ -1884,25 +1805,17 @@ SetInitNTHigh: sty CurrentNTAddr_High   ;store name table address
                dec AreaObjectLength+2
                lda #$0b                 ;set value for renderer to update 12 column sets
                sta ColumnSets           ;12 column sets = 24 metatile columns = 1 1/2 screens
-               jsr RunGetAreaDataAddrs  ;get enemy and level addresses and load header
-               ldy PrimaryHardMode      ;primary hard mode set?
-               bne SetSecHard           ;yes, set secondary hard mode as well
+               jsr GetAreaDataAddrs     ;get enemy and level addresses and load header
+               lda PrimaryHardMode      ;check to see if primary hard mode has been activated
+               bne SetSecHard           ;if so, activate the secondary no matter where we're at
+               ldy LevelSet             ;use level set as index into secondary hard mode tables
                lda WorldNumber          ;check world number
-               ldy LevelSet             ;check to see if we're playing 2J levels
-               bne ChkSecHard           ;if so, activate the secondary only past 4-4
-               cmp #World5              ;if less than 5, do not activate secondary
-               bcc CheckHalfway
-               bne SetSecHard           ;if not equal to, then world > 5, thus activate
-               lda LevelNumber          ;otherwise, world 5, so check level number
-               cmp #Level3              ;if 1 or 2, do not set secondary hard mode flag
-               bcc CheckHalfway
-               bcs SetSecHard
-ChkSecHard:    cmp #World4              ;if less than 4, do not activate secondary
-               bcc CheckHalfway
-               bne SetSecHard           ;if not equal to, then world > 4, thus activate
-               lda LevelNumber          ;otherwise, world 4, so check level number
-               cmp #Level4              ;if not 4, do not set secondary hard mode flag
-               bcc CheckHalfway
+               cmp SecondaryHardMode_World,y
+               bcc CheckHalfway         ;if less than required world, do not activate secondary
+               bne SetSecHard           ;if not equal to, then world greater than required, thus activate
+               lda LevelNumber          ;otherwise, world is equal, so check level number
+               cmp SecondaryHardMode_Level,y
+               bcc CheckHalfway         ;if less than required level, do not set secondary hard mode flag
 SetSecHard:    inc SecondaryHardMode    ;set secondary hard mode flag for SMB1 5-3/SMB2J 4-4 and beyond
 CheckHalfway:  lda HalfwayPage
                beq DoneInitArea
@@ -1937,6 +1850,7 @@ ClearVRLoop: sta VRAM_Buffer-1,y       ;clear buffer at $0300-$03ff
              sta BackloadingFlag       ;clear value here
              lda #$ff
              sta BalPlatformAlignment  ;initialize balance platform assignment flag
+             jsr InitializeLeaves      ;init leaf positions for wind (TO-DO: move?)
              lda ContinueMusicFlag     ;do not queue area music if same track is already playing
              bne KeepAreaMus
              jsr GetAreaMusic
@@ -2073,29 +1987,105 @@ SetPESub: lda #$07                    ;set to run player entrance subroutine
 
 ;page numbers are in order from level numbers 1 to 4
 HalfwayPageNybbles:
-      .byte $56, $40 ;SMB1 levels
+HalfwayPageNybbles_SMB1:
+;world 1
+      .byte $56, $40
+;world 2
       .byte $65, $70
+;world 3
       .byte $66, $40
+;world 4
       .byte $66, $40
+;world 5
       .byte $66, $40
+;world 6
       .byte $66, $60
+;world 7
       .byte $65, $70
+;world 8
       .byte $00, $00
+;world 9 (complete mode only)
       .byte $00, $00
 
-      .byte $66, $60 ;SMB2J levels
+HalfwayPageNybbles_SMB2:
+;world 1
+      .byte $66, $60
+;world 2
       .byte $88, $60
+;world 3
       .byte $66, $70
+;world 4
       .byte $77, $60
+;world 5
       .byte $d6, $00
+;world 6
       .byte $77, $80
+;world 7
       .byte $70, $b0
+;world 8
       .byte $00, $00
+;world 9
       .byte $00, $00
+;world A
       .byte $76, $50
+;world B
       .byte $65, $50
+;world C
       .byte $75, $b0
+;world D
       .byte $00, $00
+
+HalfwayPageNybbles_VSSMB:
+;world 1
+      .byte $56, $40
+;world 2
+      .byte $65, $70
+;world 3
+      .byte $68, $40
+;world 4
+      .byte $66, $40
+;world 5
+      .byte $66, $60
+;world 6
+      .byte $66, $60
+;world 7
+      .byte $68, $80
+;world 8
+      .byte $00, $00
+
+HalfwayPageNybbles_ANNSMB:
+;world 1
+      .byte $56, $40
+;world 2
+      .byte $65, $70
+;world 3
+      .byte $66, $40
+;world 4
+      .byte $66, $40
+;world 5
+      .byte $66, $60
+;world 6
+      .byte $66, $60
+;world 7
+      .byte $67, $80
+;world 8
+      .byte $00, $00
+;world 9 (does not exist)
+      .byte $00, $00
+;world A
+      .byte $76, $50
+;world B
+      .byte $d5, $70
+;world C
+      .byte $75, $b0
+;world D
+      .byte $00, $00
+
+HalfwayPageOffsets:
+      .byte HalfwayPageNybbles_SMB1-HalfwayPageNybbles
+      .byte HalfwayPageNybbles_SMB2-HalfwayPageNybbles
+      .byte HalfwayPageNybbles_VSSMB-HalfwayPageNybbles
+      .byte HalfwayPageNybbles_ANNSMB-HalfwayPageNybbles
 
 PlayerLoseLife:
              inc DisableScreenFlag    ;disable screen and IRQs
@@ -2112,15 +2102,13 @@ PlayerLoseLife:
              lda #GameOverMode        ;switch to game over mode
              sta OperMode             ;and leave
              rts
-StillInGame: lda DifficultyFlag
+StillInGame: lda DifficultyFlag       ;(TO-DO: make separate setting?)
              cmp #$02
              beq :+
+             ldy LevelSet             ;use level set as index for offset adder
              lda WorldNumber          ;retrieve world number for offset
-             ldy LevelSet             ;check if playing 2J levels
-             beq NrmlWorlds           ;if not, use world number as-is
-             clc                      ;otherwise add nine for correct halfway pages
-             adc #$09
-NrmlWorlds:  asl                      ;multiply by 2 to get offset
+             asl                      ;multiply by 2 to get offset
+             adc HalfwayPageOffsets,y ;apply correct adder to offset 
              tax
              lda LevelNumber          ;if in level 3 or 4, increment
              and #$02                 ;offset by one byte, otherwise
@@ -2186,7 +2174,7 @@ TerminateGame:
 ExRGO: rts
 
 ContinueGame:
-           jsr RunLoadAreaPointer    ;update level pointer with
+           jsr LoadAreaPointer       ;update level pointer with
            lda #$01                  ;actual world and area numbers, then
            sta PlayerSize            ;reset player's size, status, and
            inc FetchNewGameTimerFlag ;set game timer flag to reload
@@ -2866,28 +2854,8 @@ EndTreeL: lda #$18                ;render end of tree ledge
 
 MushroomOrCloudLedge:
           lda LevelSet            ;are we playing 2J levels?
-          beq MushroomLedge       ;no, use mushroom platforms
-
-;note: This is the style utilized by world 8-3 and part of world 8-2, and not to
-;be confused with the cloud-type bonus levels full of coins found throughout the game.
-CloudLedge:
-          jsr ChkLrgObjLength        ;get cloud dimensions
-          sty $06                    ;store length here for now
-          bcc EndCloud
-          lda AreaObjectLength,x     ;divide length by 2 and store elsewhere
-          lsr
-          sta MushroomLedgeHalfLen,x
-          lda #$8a                   ;render start of cloud
-          jmp NoUnder
-EndCloud: lda #$8c                   ;if at the end, render end of cloud
-          ldy AreaObjectLength,x
-          beq NoUnder
-          lda MushroomLedgeHalfLen,x ;get divided length and store where length
-          sta $06                    ;was stored originally
-          ldx $07
-          lda #$8b
-          sta MetatileBuffer,x       ;render middle of cloud
-          rts
+          cmp #LEVELS_SMB2        ;if so, use cloud ledge
+          beq CloudLedge          ;otherwise, generate mushroom ledge
 
 MushroomLedge:
           jsr ChkLrgObjLength        ;get shroom dimensions
@@ -2918,6 +2886,27 @@ AllUnder: inx
 NoUnder:  ldx $07                    ;load row of ledge
           ldy #$00                   ;set 0 for no bottom on this part
           jmp RenderUnderPart
+
+;note: This is the style utilized by world 8-3 and part of world 8-2, and not to
+;be confused with the cloud-type bonus levels full of coins found throughout the game.
+CloudLedge:
+          jsr ChkLrgObjLength        ;get cloud dimensions
+          sty $06                    ;store length here for now
+          bcc EndCloud
+          lda AreaObjectLength,x     ;divide length by 2 and store elsewhere
+          lsr
+          sta MushroomLedgeHalfLen,x
+          lda #$8a                   ;render start of cloud
+          jmp NoUnder
+EndCloud: lda #$8c                   ;if at the end, render end of cloud
+          ldy AreaObjectLength,x
+          beq NoUnder
+          lda MushroomLedgeHalfLen,x ;get divided length and store where length
+          sta $06                    ;was stored originally
+          ldx $07
+          lda #$8b
+          sta MetatileBuffer,x       ;render middle of cloud
+          rts
 
 ;--------------------------------
 
@@ -3094,9 +3083,10 @@ VerticalPipe:
           iny                      ;add four if usage control bit was not set
 WarpPipe: tya                      ;save value in stack
           pha
-          lda LevelSet             ;are we playing 2J levels?
-          bne PutPlant             ;if we are, always try to add piranha plant
-          lda AreaNumber           ;otherwise check if we're in SMB1 world 1-1
+          lda LevelSet             ;are we playing SMB2 levels?
+          cmp #LEVELS_SMB2
+          beq PutPlant             ;if we are, always try to add piranha plant
+          lda AreaNumber           ;otherwise check if we're in world 1-1
           ora WorldNumber          ;if at world 1-1, do not add piranha plant ever
           beq DrawPipe
           lda AreaType             ;workaround to prevent invisible plant in 8-4 water room
@@ -3601,18 +3591,10 @@ GameModeSubs:
       lda OperMode_Task
       jsr JumpEngine
 
-      .word GameModeDiskRoutines
       .word InitializeArea
       .word ScreenRoutines
       .word SecondaryGameSetup
-      .word GameCoreRoutine
-
-GameCoreRoutine:
-      jsr GameRoutines           ;execute one of many possible subs
-      lda OperMode_Task          ;check major task of operating mode
-      cmp #$04                   ;if we are supposed to be here,
-      bcs GameEngine             ;branch to the game engine itself
-      rts
+      .word GameEngine
 
 WaterAnimIntervals:              ;lookup table for water animation speed
         .byte 10, 16, 16, 16     ;10 frames for water area types, 16 frames for everything else
@@ -3621,6 +3603,7 @@ WaterAnimBanks:
         .byte $05, $06, $07, $08
 
 GameEngine:
+              jsr GameRoutines           ;execute one of many possible subs
               jsr ProcFireball_Bubble    ;process fireballs and air bubbles
               ldx #$00
 ProcELoop:    stx ObjectOffset           ;put incremented offset in X as enemy object offset
@@ -3658,10 +3641,8 @@ ProcELoop:    stx ObjectOffset           ;put incremented offset in X as enemy o
 			  and #$03
 			  sta WaterAnimCurrentBank
 			  tay
-			  lda #$02
-			  sta FME7Command
 			  lda WaterAnimBanks,y
-			  sta FME7Parameter
+			  sta Mirror_CHRBank_2
 DebugPUP:	  lda PressedJoypad2Bits
 			  and #Select_Button
 			  beq NoWAnim
@@ -4219,7 +4200,7 @@ NextArea: inc AreaNumber            ;increment area number used for address load
           bcc NotEndW
           jmp NextWorld
 NotEndW:  sta ContinueLevel,y
-          jsr RunLoadAreaPointer    ;get new level pointer
+          jsr LoadAreaPointer       ;get new level pointer
           inc FetchNewGameTimerFlag ;set flag to load new game timer
           jsr ChgAreaMode           ;do sub to set secondary mode, disable screen and IRQ
           lda #$00                  ;reset halfway page to 0 (beginning)
@@ -4267,9 +4248,7 @@ OnGroundStateSub:
 GndMove: jsr ImposeFriction         ;do a sub to impose friction on player's walk/run
 JmpMove: jsr MovePlayerHorizontally ;do another sub to move player horizontally
          sta Player_X_Scroll        ;set returned value as player's movement speed for scroll
-         lda FileListNumber         ;if in SMB1 levels or 2J worlds 1-4, don't bother checking for wind
-         beq ExOGSS
-         jmp BlowPlayerAround
+         jmp BlowPlayerAround       ;check for wind
 ExOGSS:  rts
 
 ;--------------------------------
@@ -5155,9 +5134,16 @@ PosJSpr:   lda Jumpspring_FixedYPos,x  ;get permanent vertical position
 .else
            lda #$f4                    ;set jumpspring force for red jumpsprings
 .endif
-           ldy LevelSet                ;if playing SMB1 levels, use red jumpspring force
+           ldy LevelSet                ;if playing SMB1 or VS. SMB levels, use red jumpspring force
+           cpy #LEVELS_SMB1
            beq SetJSF
-           ldy WorldNumber             ;otherwise check world number
+           cpy #LEVELS_VSSMB
+           beq SetJSF
+           cpy #LEVELS_SMB2            ;if playing SMB2 levels, use that game's handler
+           beq ChkJWorld
+           ldy HardWorldFlag           ;if playing ANNSMB levels, only worlds B and C have green springs
+           beq SetJSF
+ChkJWorld: ldy WorldNumber             ;otherwise check world number
            cpy #World2
            beq GreenJS                 ;if world number is 2, 3, 7, B or C
            cpy #World3                 ;set jumpspring force for green jumpsprings
@@ -5656,9 +5642,9 @@ GiveOneCoin:
       bne CoinPoints         ;if not, skip all of this
       lda #$00
       sta CoinTally          ;otherwise, reinitialize coin amount
-	  sta CoinDisplay-1
-	  sta CoinDisplay
-	  sta CoinDisplay+1
+      sta CoinDisplay-1
+      sta CoinDisplay
+      sta CoinDisplay+1
       jsr GiveExtraLife      ;award an extra life
 CoinPoints:
       lda #$02               ;set digit modifier to award
@@ -6857,19 +6843,24 @@ InitHammerBro:
        lda #$00                    ;init horizontal speed and timer used by hammer bro
        sta HammerThrowingTimer,x   ;apparently to time hammer throwing
        sta Enemy_X_Speed,x
-       lda LevelSet                ;playing SMB1 levels?
-       beq HBI                     ;skip world check, always have walk delay
-       lda DifficultyFlag
-       cmp #$02
-       beq :+
-       lda HardWorldFlag           ;if on worlds A-D, always have walk delay
+       lda LevelSet                ;if playing SMB1, hammer bro will always have walk delay
+       cmp #LEVELS_SMB1
+       beq HBI
+       cmp #LEVELS_VSSMB           ;branch to check world if playing SMB2 or ANNSMB
+       bne ChHBI
+       lda #$ff                    ;if playing VS. SMB, hammer bro waits for 255 intervals
+       bne StHBI
+       ;lda DifficultyFlag          ;(TO-DO: restore this)
+       ;cmp #$02
+       ;beq :+
+ChHBI: lda HardWorldFlag           ;if on worlds A-D, always have walk delay
        bne HBI
-:      lda WorldNumber             ;if on world 7-9 of SMB2J, branch to skip the walk delay
-       cmp #World7
+       lda WorldNumber             ;if on world 7-9 of SMB2 or world 7-8 of ANNSMB,
+       cmp #World7                 ;branch to skip the walk delay
        bcs NoHBI
 HBI:   ldy SecondaryHardMode       ;get secondary hard mode flag
        lda HBroWalkingTimerData,y
-       sta EnemyIntervalTimer,x    ;set value as delay for hammer bro to walk left
+StHBI: sta EnemyIntervalTimer,x    ;set value as delay for hammer bro to walk left
 NoHBI: lda #$0b                    ;set specific value for bounding box size control
        jmp SetBBox
 
@@ -6969,8 +6960,17 @@ CreateL:  lda #$00                ;initialize enemy state
           lda #Lakitu             ;create lakitu enemy object
           sta Enemy_ID,x
           lda #$20
-          ldy LevelSet
-          beq SetLakXY            ;if in SMB1 levels, use default high position
+          ldy LevelSet            ;if in SMB1 or VS. SMB levels, use default high position
+          cpy #LEVELS_SMB1
+          beq SetLakXY
+          cpy #LEVELS_VSSMB
+          beq SetLakXY
+          cpy #LEVELS_SMB2        ;if SMB2 levels, check world number to determine height
+          beq ChkLakWl
+          ldy HardWorldFlag       ;if ANNSMB levels, use lower height only for letter worlds
+          beq SetLakXY
+          bne SetLowLY
+ChkLakWl:
           ldy WorldNumber
           cpy #World7             ;if in 2J worlds 1-6, branch to use default high position
           bcc SetLakXY            ;otherwise put lakitu lower on the screen
@@ -7581,8 +7581,9 @@ InitJumpGPTroopa:
            lda #$02                  ;set for movement to the left
            sta Enemy_MovingDir,x
            lda #$f8                  ;load default horizontal speed
-           ldy LevelSet              ;are we playing SMB1 levels?
-           beq JumpGPSpd             ;use default horizontal speed if so
+           ldy LevelSet              ;are we playing SMB2 levels?
+           cpy #LEVELS_SMB2
+           bne JumpGPSpd             ;use default horizontal speed if not
            lda #$f4                  ;otherwise load alternate horizontal speed
 JumpGPSpd: sta Enemy_X_Speed,x       ;and store it
 TallBBox2: lda #$03                  ;set specific value for bounding box control
@@ -9353,7 +9354,8 @@ ChkPlayerNearPipe:
       cmp #$13
       bcc PutinPipe               ;if player within a certain distance, branch to leave
       ldy LevelSet                ;are we dealing with red piranha plants?
-      beq ExtD                    ;if we're playing SMB1 levels, nope!
+      cpy #LEVELS_SMB2            ;if we're playing SMB1, VS. SMB, or ANNSMB levels, nope!
+      bne ExtD
       ldy WorldNumber             ;otherwise, check for world 4+ of SMB2J
       cpy #World4
       bcs ReversePlantSpeed       ;if found, we're done here
@@ -9377,7 +9379,8 @@ SetupToMovePPlant:
 RiseFallPiranhaPlant:
        sta $00                     ;save vertical coordinate here
        lda LevelSet                ;check for red piranha plants
-       beq GrnPP                   ;no red piranha plants in SMB1 levels
+       cmp #LEVELS_SMB2            ;no red piranha plants in SMB1, VS. SMB, or ANNSMB levels
+       bne GrnPP
        lda WorldNumber             ;only red piranha plants in world 4+ of SMB2J
        cmp #World4
        bcs RedPP                   ;if found, skip to next part to execute code on every frame
@@ -11213,15 +11216,15 @@ GetWNum:  lda WarpZoneNumbers,x
           tya
           sty WorldNumber           ;store as world number and offset
           sta ContinueWorld,x
-          jsr RunGetAreaPointer
-          sty AreaPointer           ;store area offset here to be used to change areas
           ldy CurrentGame
           lda #$00
-          sta EntrancePage          ;initialize starting page number
           sta AreaNumber            ;initialize area number used for area address offset
           sta LevelNumber           ;initialize level number used for world display
           sta ContinueArea,y
           sta ContinueLevel,y
+          jsr LoadAreaPointer       ;fetch area offset to be used to change areas
+          lda #$00
+          sta EntrancePage          ;initialize starting page number
           sta AltEntranceControl    ;initialize mode of entry
           inc Hidden1UpFlag         ;set flag for hidden 1-up blocks
           inc FetchNewGameTimerFlag ;set flag to load new game timer
@@ -12642,9 +12645,10 @@ EnemyGfxHandler:
        bne CheckForRetainerObj     ;if not, branch
        ldy #$02                    ;default data makes red piranha plants
        lda LevelSet
-       beq GPlnt                   ;make green piranha plants if playing SMB1 levels
+       cmp #LEVELS_SMB2            ;make green piranha plants if playing SMB1, VS. SMB, or ANNSMB levels
+       bne GPlnt
        lda WorldNumber
-       cmp #$03
+       cmp #World4
        bcs RPlnt                   ;use default data if in world 4+ of SMB2J
 GPlnt: dey                         ;otherwise make green piranha plant
 RPlnt: sty $04
@@ -12684,9 +12688,16 @@ CheckForJumpspring:
        cmp #JumpspringObject        ;check for jumpspring object
        bne CheckForPodoboo
        lda #$02
-       ldy LevelSet                 ;check if we're playing SMB1 levels
+       ldy LevelSet                 ;check if we're playing SMB1 or VS. SMB levels
+       cpy #LEVELS_SMB1
        beq RedJS                    ;if so, paint jumpsprings red
-       ldy WorldNumber              ;if the world number is not 2, 3, 7, B or C
+       cpy #LEVELS_VSSMB
+       beq RedJS
+       cpy #LEVELS_SMB2             ;if playing SMB2 levels, use that game's handler
+       beq ChkJT
+       ldy HardWorldFlag            ;in ANNSMB, only world B and C have green jumpsprings
+       beq RedJS
+ChkJT: ldy WorldNumber              ;if the world number is not 2, 3, 7, B or C
        cpy #World2                  ;then use regular attributes for jumpsprings
        beq GrnJS                    ;which will paint them red
        cpy #World3
@@ -13762,6 +13773,9 @@ SetAnimC: sta PlayerAnimCtrl        ;store as new animation frame control
 ExAnimC:  pla                       ;get offset to graphics table from stack and leave
           rts
 
+PlayerGfxBank:
+      .byte $0b, $0c
+
 GetGfxOffsetAdder:
         lda PlayerSize  ;get player's size
         beq SzOfs       ;if player big, use current offset as-is
@@ -13769,7 +13783,10 @@ GetGfxOffsetAdder:
         clc             ;otherwise add eight bytes to offset
         adc #$08        ;for small player
         tay
-SzOfs:  rts             ;go back
+SzOfs:  ldx PlayerSize  ;(TO-DO: proper fix)
+        lda PlayerGfxBank,x
+        sta Mirror_CHRBank_4
+        rts             ;go back
 
 ChangeSizeOffsetAdder:
         .byte $00, $01, $00, $01, $00, $01, $02, $00, $01, $02
@@ -14126,90 +14143,10 @@ AttractModeSubs:
       lda OperMode_Task
       jsr JumpEngine
 
-      .word AttractModeDiskRoutines
       .word InitializeGame
       .word ScreenRoutines
       .word PrimaryGameSetup
       .word GameMenuRoutine
-      .word PrepareTheGame
-
-PrepareTheGame:
-      lda DiskIOTask
-      jsr JumpEngine
-
-      .word DiskScreen
-      .word StartTheGame
-
-StartTheGame:
-         jsr RunLoadAreaPointer    ;update area pointer for world 1-1
-         inc Hidden1UpFlag
-         inc FetchNewGameTimerFlag
-         inc OperMode
-         lda #$00
-         sta DiskIOTask
-         sta OperMode_Task
-         sta DemoTimer
-         lda #$03                 ;load common bg CHR (TO-DO: replace this)
-         sta FME7Command
-         lda #$09
-         sta FME7Parameter
-         rts
-
-AttractModeDiskRoutines:
-      lda DiskIOTask
-      jsr JumpEngine
-
-      .word DiskScreen
-      .word InitWorldPos
-
-InitWorldPos:
-           lda #$00
-           sta FileListNumber    ;reset filelist number
-           sta WorldNumber       ;reset world number
-           sta HardWorldFlag     ;reset flag related to worlds A-D
-           sta LevelSet          ;force player to start at SMB1 levels
-           jmp ResetDiskIOTask   ;end disk subroutines
-
-GameModeDiskRoutines:
-      lda DiskIOTask
-      jsr JumpEngine
-
-      .word DiskScreen
-      .word LoadWindWorlds5ThruD
-
-LoadWindWorlds5ThruD:
-      lda LevelSet          ;if in SMB1 levels
-      beq ResetDiskIOTask   ;then leave without loading anything
-      ;lda WorldNumber       ;if in 2J worlds 1-4
-      ;cmp #World5           ;then leave without loading anything
-      ;bcc ResetDiskIOTask
-      lda FileListNumber    ;if we were already in 2J worlds 5-D, leave
-      lsr
-      bcs ResetDiskIOTask   ;as there's no need to load anything
-      lda #$01
-      sta FileListNumber    ;otherwise set filelist number
-      jsr LoadGameTileset   ;load in the SMB2 tiles if we need to
-      jsr InitializeLeaves  ;init leaf positions for wind
-
-ResetDiskIOTask:
-      lda #$00              ;reset disk-related task number for next time
-      sta DiskIOTask
-      inc OperMode_Task     ;move on to next task in the current mode
-      rts
-
-DiskScreenPalette:
-  .byte $3f, $00, $04
-  .byte $0f, $30, $30, $0f
-  .byte $00
-
-DiskScreen:
-      lda #$00
-      sta IRQUpdateFlag
-      inc DisableScreenFlag
-      ;lda #$1b
-      ;sta VRAM_Buffer_AddrCtrl
-      inc DiskIOTask        ;move on to next subtask involving the disk drive
-      rts
 
 GameOverCursorData_SMB1:
   .byte SPR_BRICK_CHUNK, $03, $30
@@ -14226,7 +14163,7 @@ GameOverMenu:
             sta $00
             lda #>ContinueMenuSelect
             sta $01
-            lda #$02                     ;pass highest index to routine
+            lda #3                       ;pass number of options to routine
             jsr MenuSelectionLogic       ;operate continue menu
             lda PressedJoypadBits        ;if player pressed the start button
             and #Start_Button            ;then either continue or start over
@@ -14370,7 +14307,7 @@ SelectLogic:  lda DemoTimer               ;if select pressed, check demo timer o
               jsr DrawMenuCursor
 NullJoypad:   lda #$00
               sta SavedJoypadBits
-RunDemo:      jsr GameCoreRoutine         ;run game engine
+RunDemo:      jsr GameEngine              ;run game engine
               lda GameEngineSubroutine    ;check to see if we're running lose life routine
               cmp #$06
               bne ExitMenu                ;if not, do not do all the resetting below
@@ -14384,7 +14321,14 @@ ResetTitle:   lda #$00                    ;reset game modes, disable
 StartGame:
               lda DemoTimer
               beq ResetTitle
-              inc OperMode_Task
+              jsr LoadLevelSet            ;load in level set
+              jsr LoadAreaPointer         ;update area pointer for world 1-1
+              inc Hidden1UpFlag
+              inc FetchNewGameTimerFlag
+              inc OperMode
+              lda #$00
+              sta OperMode_Task
+              sta DemoTimer
               lda #$00
               ldx #$0b
 InitScore:    sta ScoreAndCoinDisplay,x   ;clear player score and coin display
@@ -14416,8 +14360,10 @@ ExitCursor:   lda CurrentGame           ;if complete mode move shroom down
 
 MaxWorldNumbers:
       .byte World9, WorldD
-      .byte World8, World8
-      .byte WorldD
+      .byte World8, $ff
+      .byte WorldD, $ff
+      .byte World8, $ff
+      .word WorldD, $ff
 
 WorldLevelSelect:
              lda PressedJoypad2Bits
@@ -14447,7 +14393,7 @@ IncWorldNum: ; increment world number
              lda #$00
              sta WorldNumber
              lda CurrentGame
-             lsr
+             cmp #GAME_COMPLETE
              bne DrawWorldLevel
              lda HardWorldFlag
              eor #%00000001
@@ -14485,22 +14431,35 @@ DrawWorldLevel:
 NoWorldLevelSel:
              rts
 
+LongWorlds:
 LongWorlds_SMB1:
       .byte World1, World2, World4, World7, $FF
 LongWorlds_SMB2:
       .byte World1, World3, World5, World6, WorldA, WorldB, $FF
+LongWorlds_VSSMB:
+      .byte World1, World2, World4, World7, $FF
+LongWorlds_ANNSMB:
+      .byte World1, World2, World4, World7, WorldA, WorldB, $FF
+
+LongWorldsOffsets:
+      .byte LongWorlds_SMB1-LongWorlds
+      .byte LongWorlds_SMB2-LongWorlds
+      .byte LongWorlds_VSSMB-LongWorlds
+      .byte LongWorlds_ANNSMB-LongWorlds
 
 SetCorrectLevel:
-             ldy HardWorldFlag
              lda CurrentGame
-             lsr
-             bcs SetHardMode ; SMB1
-             beq SetLevelSet ; SMBC
-             ldy #$01
-SetLevelSet: sty LevelSet
+             cmp #GAME_COMPLETE
+             bne SetLevelSet ; all but SMBC
+             lda HardWorldFlag
+             clc
+             adc #$01
+SetLevelSet: tay
+             dey
+             sty LevelSet
              ldy #$00
-SetHardMode: sty PrimaryHardMode
-             ldy #$00
+             sty PrimaryHardMode
+SetHardMode: ldy #$00
              lda WorldNumber
              cmp #WorldA
              bcc SetHWorlds
@@ -14509,20 +14468,11 @@ SetHWorlds:  sty HardWorldFlag
              lda LevelNumber
              sta AreaNumber
              beq EndSetLevel
-             ldy #$00
-             lda LevelSet
-             bne Chk2JWorlds
-             lda #<LongWorlds_SMB1
-             sta $00
-             lda #>LongWorlds_SMB1
-             sta $01
-             bne ChkLongWorlds
-Chk2JWorlds: lda #<LongWorlds_SMB2
-             sta $00
-             lda #>LongWorlds_SMB2
-             sta $01
+             ldy LevelSet
+             lda LongWorldsOffsets,y
+             tay
 ChkLongWorlds:
-             lda ($00),y
+             lda LongWorlds,y
              cmp #$FF
              beq EndSetLevel
              cmp WorldNumber
@@ -14573,27 +14523,23 @@ ClearTopScore:
 
 WriteTopScore:
                lda #$0a                    ;run display routine to display top score on title
-               ldy CurrentGame
-               bne :+
-               lda #$4a
-:              jsr WriteDigits
+               jsr WriteDigits
 IncModeTask_B: jmp IncModeTask
 
+InitialLevelSet:
+      .byte LEVELS_SMB1, LEVELS_SMB1, LEVELS_SMB2, LEVELS_VSSMB, LEVELS_ANNSMB
+
 InitializeGame:
-            lda #$00
-            sta CompletedWorlds      ;clean slate player's progress (except for games beaten)
+            lda #$00                 ;clean slate player's progress (except for games beaten) 
+            sta CompletedWorlds     
+            sta FileListNumber       ;(TO-DO: can probably remove this variable?)
+            sta WorldNumber
+            sta LevelNumber
+            sta AreaNumber
             sta HardWorldFlag
-            sta SelectedPlayer
             ldy CurrentGame
-            cpy #$02
-            bne :+
-            lda #$01
-:           sta LevelSet
-            jsr LoadGameTileset      ;load game-appropiate CHR data
-            lda #$03                 ;load title screen CHR (TO-DO: replace this)
-            sta FME7Command
-            lda #$0a
-            sta FME7Parameter
+            lda InitialLevelSet,y
+            jsr UpdateLevelSet       ;force player to start at correct set of levels
             ldy #<Memory_InitializeGame ;clear all memory as in initialization procedure,
             ldx #>Memory_InitializeGame
             jsr InitializeMemory     ;but this time, clear only as far as $076f
@@ -14605,7 +14551,7 @@ ClrSndLoop: sta SoundMemory,y        ;clear out memory used
 DemoReset:
             lda #$18             ;set demo timer
             sta DemoTimer
-            jsr RunLoadAreaPointer
+            jsr LoadAreaPointer
             jmp InitializeArea
 
 PrimaryGameSetup:
@@ -14672,474 +14618,6 @@ DrawLine:   ora #%01000000                ;add bit to indicate repeated tile
             sta VRAM_Buffer_Offset
 NoStars:    rts                           ;now we're done!
 
-;-------------------------------------------------------------------------------------
-
-TitleScreenGfxData_Complete:
-       ;logo
-       .byte $20, $85, 1
-       .byte BG_LOGO
-       .byte $20, $86, $40+20
-       .byte BG_LOGO+1
-       .byte $20, $9a, 1
-       .byte BG_LOGO+2
-       .byte $20, $a5, $c0+13
-       .byte BG_LOGO+3
-       .byte $20, $a6, 10
-       .byte BG_LOGO+8, BG_LOGO+9, BG_LOGO+16, BG_LOGO+16, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8, BG_LOGO+18
-       .byte BG_LOGO+22, BG_LOGO+9
-       .byte $20, $b0, $40+10
-       .byte BG_COLOR_2
-       .byte $20, $ba, $c0+13
-       .byte BG_LOGO+4
-       .byte $20, $c6, 10
-       .byte BG_LOGO+10, BG_LOGO+11, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+20
-       .byte BG_LOGO+19, BG_LOGO+23
-       .byte $20, $d0, $40+10
-       .byte BG_COLOR_2
-       .byte $20, $e6, 10
-       .byte BG_LOGO+12, BG_LOGO+13, BG_LOGO+12, BG_LOGO+17, BG_LOGO+19, BG_LOGO+26, BG_LOGO+12, BG_LOGO+18
-       .byte BG_LOGO+19, BG_LOGO+24
-       .byte $20, $f0, $40+10
-       .byte BG_COLOR_2
-       .byte $21, $06, 10
-       .byte BG_LOGO+14, BG_LOGO+15, BG_LOGO+14, BG_LOGO+15, BG_LOGO+25, BG_COLOR_2, BG_LOGO+14, BG_LOGO+21
-       .byte BG_LOGO+25, BG_LOGO+25
-       .byte $21, $10, $40+10
-       .byte BG_COLOR_2
-       .byte $21, $26, 20
-       .byte BG_LOGO+8, BG_LOGO+32, BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+16
-       .byte BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_LOGO+22, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8
-       .byte BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_COLOR_2
-       .byte $21, $46, 20
-       .byte BG_LOGO+19, BG_LOGO+28, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
-       .byte BG_LOGO+19, BG_LOGO+28, BG_COLOR_2, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
-       .byte BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_COLOR_2
-       .byte $21, $66, $40+6
-       .byte BG_LOGO+19
-       .byte $21, $6c, 14
-       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+23, BG_LOGO+19
-       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+10, BG_LOGO+29, BG_COLOR_2
-       .byte $21, $86, 20
-       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+22, BG_LOGO+31, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
-       .byte BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
-       .byte BG_LOGO+19, BG_LOGO+30, BG_LOGO+27, BG_COLOR_2
-       .byte $21, $a6, 20
-       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19
-       .byte BG_LOGO+12, BG_LOGO+17, BG_COLOR_2, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+19, BG_LOGO+12
-       .byte BG_LOGO+17, BG_LOGO+12, BG_LOGO+17, BG_LOGO+16
-       .byte $21, $c6, $40+8
-       .byte BG_LOGO+25
-       .byte $21, $ce, 12
-       .byte BG_LOGO+14, BG_LOGO+15, BG_COLOR_2, BG_LOGO+25, BG_LOGO+26, BG_LOGO+25, BG_LOGO+25, BG_LOGO+14
-       .byte BG_LOGO+15, BG_LOGO+14, BG_LOGO+15, BG_LOGO+25
-       .byte $21, $e6, 20
-       .byte BG_LOGO+8, BG_LOGO+18, BG_LOGO+8, BG_LOGO+9, BG_LOGO+8, BG_LOGO+32, BG_LOGO+9, BG_LOGO+22
-       .byte BG_LOGO+9, BG_LOGO+16, BG_COLOR_2, BG_LOGO+8, BG_LOGO+18, BG_LOGO+22, BG_LOGO+18, BG_LOGO+8
-       .byte BG_LOGO+18, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
-       .byte $22, $06, 20
-       .byte BG_LOGO+19, BG_LOGO+21, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+28, BG_LOGO+19
-       .byte BG_LOGO+17, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+20, BG_LOGO+57, BG_LOGO+58, BG_LOGO+19
-       .byte BG_LOGO+20, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
-       .byte $22, $26, 20
-       .byte BG_LOGO+12, BG_LOGO+18, BG_LOGO+12, BG_LOGO+17, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19
-       .byte BG_LOGO+26, BG_LOGO+12, BG_LOGO+18, BG_LOGO+12, BG_LOGO+18, BG_LOGO+59, BG_LOGO+60, BG_LOGO+12
-       .byte BG_LOGO+18, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
-       .byte $22, $45, 1
-       .byte BG_LOGO+5
-       .byte $22, $46, 20
-       .byte BG_LOGO+35, BG_LOGO+41, BG_LOGO+35, BG_LOGO+36, BG_LOGO+33, BG_LOGO+33, BG_LOGO+33, BG_LOGO+33
-       .byte BG_LOGO+6, BG_LOGO+35, BG_LOGO+41, BG_LOGO+35, BG_LOGO+41, BG_LOGO+61, BG_LOGO+62, BG_LOGO+35
-       .byte BG_LOGO+41, BG_LOGO+6, BG_LOGO+6, BG_LOGO+6
-       .byte $22, $5a, 1
-       .byte BG_LOGO+7
-
-       ;options and top score
-       .byte $22, $8d, 10
-       .byte "MARIO GAME"
-       .byte $22, $cd, 10
-       .byte "LUIGI GAME"
-       .byte $23, $0b, 4
-       .byte "TOP-"
-       .byte $23, $15, 1
-       .byte "0"
-
-       ;attribute data
-       .byte $23, $c9, $40+6
-       .byte %01010101
-       .byte $23, $d1, $40+6
-       .byte %01010101
-       .byte $23, $d9, $40+6
-       .byte %01010101
-       .byte $23, $e1, $40+6
-       .byte %01010101
-       .byte $23, $ea, 4
-       .byte %01000100, %10101010, %10101010, %10101010
-       .byte $23, $f2, 4
-       .byte %01011000, %01011010, %01011010, %01010010
-
-       ;terminator
-       .byte $00
-TitleScreenGfxData_SMB1:
-       ;logo
-       .byte $20, $85, 1
-       .byte BG_LOGO
-       .byte $20, $86, $40+20
-       .byte BG_LOGO+1
-       .byte $20, $9a, 1
-       .byte BG_LOGO+2
-       .byte $20, $a5, $c0+9
-       .byte BG_LOGO+3
-       .byte $20, $a6, 10
-       .byte BG_LOGO+8, BG_LOGO+9, BG_LOGO+16, BG_LOGO+16, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8, BG_LOGO+18
-       .byte BG_LOGO+22, BG_LOGO+9
-       .byte $20, $b0, $40+10
-       .byte BG_COLOR_2
-       .byte $20, $ba, $c0+9
-       .byte BG_LOGO+4
-       .byte $20, $c6, 10
-       .byte BG_LOGO+10, BG_LOGO+11, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+20
-       .byte BG_LOGO+19, BG_LOGO+23
-       .byte $20, $d0, $40+10
-       .byte BG_COLOR_2
-       .byte $20, $e6, 10
-       .byte BG_LOGO+12, BG_LOGO+13, BG_LOGO+12, BG_LOGO+17, BG_LOGO+19, BG_LOGO+26, BG_LOGO+12, BG_LOGO+18
-       .byte BG_LOGO+19, BG_LOGO+24
-       .byte $20, $f0, $40+10
-       .byte BG_COLOR_2
-       .byte $21, $06, 10
-       .byte BG_LOGO+14, BG_LOGO+15, BG_LOGO+14, BG_LOGO+15, BG_LOGO+25, BG_COLOR_2, BG_LOGO+14, BG_LOGO+21
-       .byte BG_LOGO+25, BG_LOGO+25
-       .byte $21, $10, $40+10
-       .byte BG_COLOR_2
-       .byte $21, $26, 20
-       .byte BG_LOGO+8, BG_LOGO+32, BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+16
-       .byte BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_LOGO+22, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8
-       .byte BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_COLOR_2
-       .byte $21, $46, 20
-       .byte BG_LOGO+19, BG_LOGO+28, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
-       .byte BG_LOGO+19, BG_LOGO+28, BG_COLOR_2, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
-       .byte BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_COLOR_2
-       .byte $21, $66, $40+6
-       .byte BG_LOGO+19
-       .byte $21, $6c, 14
-       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+23, BG_LOGO+19
-       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+10, BG_LOGO+29, BG_COLOR_2
-       .byte $21, $86, 20
-       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+22, BG_LOGO+31, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
-       .byte BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
-       .byte BG_LOGO+19, BG_LOGO+30, BG_LOGO+27, BG_COLOR_2
-       .byte $21, $a6, 20
-       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19
-       .byte BG_LOGO+12, BG_LOGO+17, BG_COLOR_2, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+19, BG_LOGO+12
-       .byte BG_LOGO+17, BG_LOGO+12, BG_LOGO+17, BG_LOGO+16
-       .byte $21, $c5, 1
-       .byte BG_LOGO+5
-       .byte $21, $c6, $40+8
-       .byte BG_LOGO+33
-       .byte $21, $ce, 12
-       .byte BG_LOGO+35, BG_LOGO+36, BG_LOGO+6, BG_LOGO+33, BG_LOGO+34, BG_LOGO+33, BG_LOGO+33, BG_LOGO+35
-       .byte BG_LOGO+36, BG_LOGO+35, BG_LOGO+36, BG_LOGO+33
-       .byte $21, $da, 1
-       .byte BG_LOGO+7
-       .byte $21, $ed, 14
-       .byte "c1985 NINTENDO"
-
-       ;options and top score
-       .byte $22, $4d, 10
-       .byte "MARIO GAME"
-       .byte $22, $8d, 10
-       .byte "LUIGI GAME"
-       .byte $22, $eb, 4
-       .byte "TOP-"
-       .byte $22, $f5, 1
-       .byte "0"
-
-       ;attribute data
-       .byte $23, $c9, $40+6
-       .byte %01010101
-       .byte $23, $d1, $40+6
-       .byte %01010101
-       .byte $23, $d9, $40+6
-       .byte %01010101
-       .byte $23, $e2, 4
-       .byte %01000000, %10100000, %10100000, %10100000
-       .byte $23, $ea, 4
-       .byte %10000100, %10101010, %10101010, %00101010
-
-       ;terminator
-       .byte $00
-TitleScreenGfxData_SMB2:
-       ;logo
-       .byte $20, $84, 1
-       .byte BG_LOGO
-       .byte $20, $85, $40+23
-       .byte BG_LOGO+1
-       .byte $20, $9c, 1
-       .byte BG_LOGO+2
-       .byte $20, $a4, $c0+9
-       .byte BG_LOGO+3
-       .byte $20, $a5, 10
-       .byte BG_LOGO+8, BG_LOGO+9, BG_LOGO+16, BG_LOGO+16, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8, BG_LOGO+18
-       .byte BG_LOGO+22, BG_LOGO+9
-       .byte $20, $af, $40+13
-       .byte BG_COLOR_2
-       .byte $20, $bc, $c0+9
-       .byte BG_LOGO+4
-       .byte $20, $c5, 10
-       .byte BG_LOGO+10, BG_LOGO+11, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+20
-       .byte BG_LOGO+19, BG_LOGO+23
-       .byte $20, $cf, $40+13
-       .byte BG_COLOR_2
-       .byte $20, $e5, 10
-       .byte BG_LOGO+12, BG_LOGO+13, BG_LOGO+12, BG_LOGO+17, BG_LOGO+19, BG_LOGO+26, BG_LOGO+12, BG_LOGO+18
-       .byte BG_LOGO+19, BG_LOGO+24
-       .byte $20, $ef, $40+13
-       .byte BG_COLOR_2
-       .byte $21, $05, 10
-       .byte BG_LOGO+14, BG_LOGO+15, BG_LOGO+14, BG_LOGO+15, BG_LOGO+25, BG_COLOR_2, BG_LOGO+14, BG_LOGO+21
-       .byte BG_LOGO+25, BG_LOGO+25
-       .byte $21, $0f, $40+13
-       .byte BG_COLOR_2
-       .byte $21, $25, 23
-       .byte BG_LOGO+8, BG_LOGO+32, BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+16
-       .byte BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_LOGO+22, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8
-       .byte BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_COLOR_2, BG_LOGO+8, BG_LOGO+9
-       .byte $21, $45, 23
-       .byte BG_LOGO+19, BG_LOGO+28, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
-       .byte BG_LOGO+19, BG_LOGO+28, BG_COLOR_2, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
-       .byte BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_COLOR_2, BG_COLOR_2, BG_LOGO+19, BG_LOGO+28
-       .byte $21, $65, $40+6
-       .byte BG_LOGO+19
-       .byte $21, $6b, 17
-       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+23, BG_LOGO+19
-       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+10, BG_LOGO+29, BG_COLOR_2, BG_COLOR_2, BG_LOGO+37
-       .byte BG_LOGO+38
-       .byte $21, $85, 23
-       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+22, BG_LOGO+31, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
-       .byte BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
-       .byte BG_LOGO+19, BG_LOGO+30, BG_LOGO+27, BG_COLOR_2, BG_COLOR_2, BG_LOGO+39, BG_LOGO+40
-       .byte $21, $a5, 23
-       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19
-       .byte BG_LOGO+12, BG_LOGO+17, BG_COLOR_2, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+19, BG_LOGO+12
-       .byte BG_LOGO+17, BG_LOGO+12, BG_LOGO+17, BG_LOGO+16, BG_COLOR_2, BG_LOGO+22, BG_LOGO+18
-       .byte $21, $c4, 1
-       .byte BG_LOGO+5
-       .byte $21, $c5, $40+8
-       .byte BG_LOGO+33
-       .byte $21, $cd, 15
-       .byte BG_LOGO+35, BG_LOGO+36, BG_LOGO+6, BG_LOGO+33, BG_LOGO+34, BG_LOGO+33, BG_LOGO+33, BG_LOGO+35
-       .byte BG_LOGO+36, BG_LOGO+35, BG_LOGO+36, BG_LOGO+33, BG_LOGO+6, BG_LOGO+33, BG_LOGO+41
-       .byte $21, $dc, 1
-       .byte BG_LOGO+7
-       .byte $21, $ef, 14
-       .byte "c1986 NINTENDO"
-
-       ;options and top score
-       .byte $22, $4d, 10
-       .byte "MARIO GAME"
-       .byte $22, $8d, 10
-       .byte "LUIGI GAME"
-       .byte $22, $eb, 4
-       .byte "TOP-"
-       .byte $22, $f5, 1
-       .byte "0"
-
-       ;attribute data
-       .byte $23, $c9, $40+6
-       .byte %01010101
-       .byte $23, $cf, 1
-       .byte %00010001
-       .byte $23, $d1, $40+5
-       .byte %01010101
-       .byte $23, $d6, 2
-       .byte %11011101, %00010001
-       .byte $23, $d9, $40+5
-       .byte %01010101
-       .byte $23, $de, 2
-       .byte %01011101, %00010001
-       .byte $23, $e2, 4
-       .byte %01000000, %10100000, %10100000, %10100000
-       .byte $23, $ea, 4
-       .byte %10010101, %10101010, %10101010, %00101010
-
-       ;terminator
-       .byte $00
-TitleScreenGfxData_VSSMB:
-       ;logo
-       .byte $20, $85, 1
-       .byte BG_LOGO
-       .byte $20, $86, $40+20
-       .byte BG_LOGO+1
-       .byte $20, $9a, 1
-       .byte BG_LOGO+2
-       .byte $20, $a5, $c0+9
-       .byte BG_LOGO+3
-       .byte $20, $a6, 20
-       .byte BG_LOGO+16, BG_LOGO+16, BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_COLOR_2, BG_LOGO+8, BG_LOGO+9
-       .byte BG_LOGO+16, BG_LOGO+16, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8, BG_LOGO+18, BG_LOGO+22, BG_LOGO+9
-       .byte BG_COLOR_2, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
-       .byte $20, $ba, $c0+9
-       .byte BG_LOGO+4
-       .byte $20, $c6, 20
-       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+10, BG_LOGO+11, BG_COLOR_2, BG_COLOR_2, BG_LOGO+10, BG_LOGO+11
-       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+20, BG_LOGO+19, BG_LOGO+23
-       .byte BG_COLOR_2, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
-       .byte $20, $e6, 20
-       .byte BG_LOGO+43, BG_LOGO+44, BG_LOGO+12, BG_LOGO+13, BG_LOGO+16, BG_COLOR_2, BG_LOGO+12, BG_LOGO+13
-       .byte BG_LOGO+12, BG_LOGO+17, BG_LOGO+19, BG_LOGO+26, BG_LOGO+12, BG_LOGO+18, BG_LOGO+19, BG_LOGO+24
-       .byte BG_COLOR_2, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
-       .byte $21, $06, 20
-       .byte BG_LOGO+45, BG_LOGO+46, BG_LOGO+14, BG_LOGO+15, BG_LOGO+25, BG_COLOR_2, BG_LOGO+14, BG_LOGO+15
-       .byte BG_LOGO+14, BG_LOGO+15, BG_LOGO+25, BG_COLOR_2, BG_LOGO+14, BG_LOGO+21, BG_LOGO+25, BG_LOGO+25
-       .byte BG_COLOR_2, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
-       .byte $21, $26, 20
-       .byte BG_LOGO+8, BG_LOGO+32, BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+16
-       .byte BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_LOGO+22, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8
-       .byte BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_COLOR_2
-       .byte $21, $46, 20
-       .byte BG_LOGO+19, BG_LOGO+28, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
-       .byte BG_LOGO+19, BG_LOGO+28, BG_COLOR_2, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
-       .byte BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_COLOR_2
-       .byte $21, $66, $40+6
-       .byte BG_LOGO+19
-       .byte $21, $6c, 14
-       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+23, BG_LOGO+19
-       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+10, BG_LOGO+29, BG_COLOR_2
-       .byte $21, $86, 20
-       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+22, BG_LOGO+31, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
-       .byte BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
-       .byte BG_LOGO+19, BG_LOGO+30, BG_LOGO+27, BG_COLOR_2
-       .byte $21, $a6, 20
-       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19
-       .byte BG_LOGO+12, BG_LOGO+17, BG_COLOR_2, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+19, BG_LOGO+12
-       .byte BG_LOGO+17, BG_LOGO+12, BG_LOGO+17, BG_LOGO+16
-       .byte $21, $c5, 1
-       .byte BG_LOGO+5
-       .byte $21, $c6, $40+8
-       .byte BG_LOGO+33
-       .byte $21, $ce, 12
-       .byte BG_LOGO+35, BG_LOGO+36, BG_LOGO+6, BG_LOGO+33, BG_LOGO+34, BG_LOGO+33, BG_LOGO+33, BG_LOGO+35
-       .byte BG_LOGO+36, BG_LOGO+35, BG_LOGO+36, BG_LOGO+33
-       .byte $21, $da, 1
-       .byte BG_LOGO+7
-       .byte $21, $ed, 14
-       .byte "c1986 NINTENDO"
-
-       ;options and top score
-       .byte $22, $4d, 10
-       .byte "MARIO GAME"
-       .byte $22, $8d, 10
-       .byte "LUIGI GAME"
-       .byte $22, $eb, 4
-       .byte "TOP-"
-       .byte $22, $f5, 1
-       .byte "0"
-
-       ;attribute data
-       .byte $23, $c9, $40+6
-       .byte %01010101
-       .byte $23, $d1, $40+6
-       .byte %01010101
-       .byte $23, $d9, $40+6
-       .byte %01010101
-       .byte $23, $e2, 4
-       .byte %01000000, %10100000, %10100000, %10100000
-       .byte $23, $ea, 4
-       .byte %10000100, %10101010, %10101010, %00101010
-
-       ;terminator
-       .byte $00
-TitleScreenGfxData_ANNSMB:
-       ;logo
-       .byte $20, $85, 1
-       .byte BG_LOGO
-       .byte $20, $86, $40+20
-       .byte BG_LOGO+1
-       .byte $20, $9a, 1
-       .byte BG_LOGO+2
-       .byte $20, $a5, $c0+9
-       .byte BG_LOGO+3
-       .byte $20, $a6, 20
-       .byte BG_LOGO+47, BG_LOGO+48, BG_LOGO+49, BG_LOGO+50, BG_LOGO+51, BG_LOGO+52, BG_LOGO+53, BG_LOGO+54
-       .byte BG_LOGO+55, BG_LOGO+56, BG_LOGO+8, BG_LOGO+9, BG_LOGO+16, BG_LOGO+16, BG_LOGO+22, BG_LOGO+9
-       .byte BG_LOGO+8, BG_LOGO+18, BG_LOGO+22, BG_LOGO+9
-       .byte $20, $ba, $c0+9
-       .byte BG_LOGO+4
-       .byte $20, $c6, $40+10
-       .byte BG_COLOR_2
-       .byte $20, $d0, 10
-       .byte BG_LOGO+10, BG_LOGO+11, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+20
-       .byte BG_LOGO+19, BG_LOGO+23
-       .byte $20, $e6, $40+10
-       .byte BG_COLOR_2
-       .byte $20, $f0, 10
-       .byte BG_LOGO+12, BG_LOGO+13, BG_LOGO+12, BG_LOGO+17, BG_LOGO+19, BG_LOGO+26, BG_LOGO+12, BG_LOGO+18
-       .byte BG_LOGO+19, BG_LOGO+24
-       .byte $21, $06, $40+10
-       .byte BG_COLOR_2
-       .byte $21, $10, 10
-       .byte BG_LOGO+14, BG_LOGO+15, BG_LOGO+14, BG_LOGO+15, BG_LOGO+25, BG_COLOR_2, BG_LOGO+14, BG_LOGO+21
-       .byte BG_LOGO+25, BG_LOGO+25
-       .byte $21, $26, 20
-       .byte BG_LOGO+8, BG_LOGO+32, BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+16
-       .byte BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_LOGO+22, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8
-       .byte BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_COLOR_2
-       .byte $21, $46, 20
-       .byte BG_LOGO+19, BG_LOGO+28, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
-       .byte BG_LOGO+19, BG_LOGO+28, BG_COLOR_2, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
-       .byte BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_COLOR_2
-       .byte $21, $66, $40+6
-       .byte BG_LOGO+19
-       .byte $21, $6c, 14
-       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+23, BG_LOGO+19
-       .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+10, BG_LOGO+29, BG_COLOR_2
-       .byte $21, $86, 20
-       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+22, BG_LOGO+31, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
-       .byte BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
-       .byte BG_LOGO+19, BG_LOGO+30, BG_LOGO+27, BG_COLOR_2
-       .byte $21, $a6, 20
-       .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19
-       .byte BG_LOGO+12, BG_LOGO+17, BG_COLOR_2, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+19, BG_LOGO+12
-       .byte BG_LOGO+17, BG_LOGO+12, BG_LOGO+17, BG_LOGO+16
-       .byte $21, $c5, 1
-       .byte BG_LOGO+5
-       .byte $21, $c6, $40+8
-       .byte BG_LOGO+33
-       .byte $21, $ce, 12
-       .byte BG_LOGO+35, BG_LOGO+36, BG_LOGO+6, BG_LOGO+33, BG_LOGO+34, BG_LOGO+33, BG_LOGO+33, BG_LOGO+35
-       .byte BG_LOGO+36, BG_LOGO+35, BG_LOGO+36, BG_LOGO+33
-       .byte $21, $da, 1
-       .byte BG_LOGO+7
-       .byte $21, $ed, 14
-
-       ;copyright string
-       .byte "c1986 NINTENDO"
-
-       ;options and top score
-       .byte $22, $4d, 10
-       .byte "MARIO GAME"
-       .byte $22, $8d, 10
-       .byte "LUIGI GAME"
-       .byte $22, $eb, 4
-       .byte "TOP-"
-       .byte $22, $f5, 1
-       .byte "0"
-
-       ;attribute data
-       .byte $23, $c9, $40+6
-       .byte %01010101
-       .byte $23, $d1, $40+6
-       .byte %01010101
-       .byte $23, $d9, $40+6
-       .byte %01010101
-       .byte $23, $e2, 4
-       .byte %01000000, %10100000, %10100000, %10100000
-       .byte $23, $ea, 4
-       .byte %10000100, %10101010, %10101010, %00101010
-
-       ;terminator
-       .byte $00
-
 ;-------------------------------------------------------------------------------------------------
 ;$06 - used to store vertical length of pipe
 ;$07 - starts with adder from area parser, used to store row offset
@@ -15149,8 +14627,9 @@ UpsideDownPipe_High:
        pha
        bne UDP
 UpsideDownPipe_Low:
-       lda LevelSet                 ;playing 2J levels?
-       bne UDPJ                     ;if so, use standard position
+       lda LevelSet                 ;playing SMB1 levels?
+       cmp #LEVELS_SMB1
+       bne UDPJ                     ;if not, use standard position
        lda #$03                     ;otherwise start at fourth row like
        pha                          ;that god-forsaken upside-down pipe
        bne UDP                      ;patch for super mario bros. 1
@@ -15270,8 +14749,8 @@ LeavesXPos:
         .byte $a0, $a0, $d0, $d0, $d0, $60
 
 LeavesTile:
-        .byte $85, $85, $85, $85, $84, $84
-        .byte $85, $85, $85, $84, $85, $84
+        .byte SPR_WIND+1, SPR_WIND+1, SPR_WIND+1, SPR_WIND+1, SPR_WIND, SPR_WIND
+        .byte SPR_WIND+1, SPR_WIND+1, SPR_WIND+1, SPR_WIND, SPR_WIND+1, SPR_WIND
 
 SimulateWind:
           lda WindFlag             ;if no wind, branch to leave
@@ -15530,17 +15009,9 @@ ELL: lda TwoBlankRows,x
 
 RunMushroomRetainers:
        jsr MushroomRetainersForW8  ;draw and flash the seven mushroom retainers
-       lda EventMusicBuffer        ;if still playing victory music, branch to leave
-       bne ExRMR
-       inc OperMode_Task           ;move onto the last task
-ExRMR: rts
-
-EndingDiskRoutines:
-    lda DiskIOTask
-    jsr JumpEngine
-
-    .word DiskScreen
-    .word UpdateGamesBeaten
+       lda EventMusicBuffer        ;if still playing victory music, leave
+       beq UpdateGamesBeaten       ;otherwise, branch to update games beaten
+       rts
 
 UpdateGamesBeaten:
     ldy CurrentGame
@@ -15678,164 +15149,313 @@ NextMRet:
     rts
 
 ;-------------------------------------------------------------------------------------
+; FIXED BANK
+.res $EC00 - *, $FF
 
-TheKingdomIsSavedMsg:
-    .byte $25, $c6, 21
-    .byte "THE KINGDOM IS SAVED!"
-    .byte $00
+WorldAddrOffsets = $00
+AreaAddrOffsets = $02
 
-NowTryAMoreDifficultQuestMsg:
-    .byte $26, $06, 14
-    .byte "NOW TRY A MORE"
-    .byte $26, $46, 18
-    .byte "DIFFICULT QUEST..."
-    .byte $00
+LoadAreaPointer:
+             jsr FindAreaPointer  ;find it and store it here
+             sta AreaPointer
+GetAreaType: and #%01100000       ;mask out all but d6 and d5
+             asl
+             rol
+             rol
+             rol                  ;make %0xx00000 into %000000xx
+             sta AreaType         ;save 2 MSB as area type
+             rts
 
-FinalRoomPalette:
-    .byte $3f, $00, $10
-    .byte $0f, $0f, $0f, $0f, $0f, $30, $10, $00
-    .byte $0f, $21, $12, $02, $0f, $27, $17, $00
+FindAreaPointer:
+      lda WRAM_WorldAddrOffsets   ;copy pointers to zero page
+      sta WorldAddrOffsets
+      lda WRAM_WorldAddrOffsets+1
+      sta WorldAddrOffsets+1
+      lda WRAM_AreaAddrOffsets
+      sta AreaAddrOffsets
+      lda WRAM_AreaAddrOffsets+1
+      sta AreaAddrOffsets+1
+      lda WorldNumber             ;load offset from world variable
+      tay
+      lda (WorldAddrOffsets),y
+      clc
+      adc AreaNumber              ;add area number used to find data
+      tay
+      lda (AreaAddrOffsets),y     ;from there we have our area pointer
+      rts
 
-    .byte $23, $c0, $48, $55
-    .byte $23, $c2, $01, $d5
-    .byte $27, $d0, $58, $aa
-    .byte $00
+;--------------------------------
 
-MarioThankYouMsgFinal:
-    .byte $24, $e8, 16
-    .byte "THANK YOU MARIO!"
+LevelAddrOffsets = $00
+EnemyDataAddrs = $02
+AreaDataAddrs = $04
 
-    .byte $27, $c8, $48, $05
-    .byte $00
+GetAreaDataAddrs:
+            lda AreaPointer               ;use 2 MSB for Y
+            jsr GetAreaType
+            tay
+            lda AreaPointer               ;mask out all but 5 LSB
+            and #%00011111
+            sta AreaAddrsLOffset          ;save as low offset
 
-LuigiThankYouMsgFinal:
-    .byte $24, $e8, 16
-    .byte "THANK YOU LUIGI!"
+            lda WRAM_LevelBank            ;load correct levels bank
+            jsr Switch16KBank
+            lda WRAM_LevelAddrOffsets     ;copy pointers to zero page
+            sta LevelAddrOffsets
+            lda WRAM_LevelAddrOffsets+1
+            sta LevelAddrOffsets+1
+            lda WRAM_EnemyDataAddrs
+            sta EnemyDataAddrs
+            lda WRAM_EnemyDataAddrs+1
+            sta EnemyDataAddrs+1
+            lda WRAM_AreaDataAddrs
+            sta AreaDataAddrs
+            lda WRAM_AreaDataAddrs+1
+            sta AreaDataAddrs+1
 
-    .byte $27, $c8, $48, $05
-    .byte $00
+            lda (LevelAddrOffsets),y      ;load base value with 2 altered MSB,
+            clc                           ;then add base value to 5 LSB, result
+            adc AreaAddrsLOffset          ;becomes offset for level data
+            asl
+            tay
+            lda (EnemyDataAddrs),y        ;use offset to load pointer
+            sta EnemyDataLow
+            lda (AreaDataAddrs),y         ;use offset to load another pointer
+            sta AreaDataLow
+            iny
+            lda (EnemyDataAddrs),y
+            sta EnemyDataHigh
+            lda (AreaDataAddrs),y
+            sta AreaDataHigh
+            ldy #$00                      ;load first byte of header
+            lda (AreaData),y     
+            pha                           ;save it to the stack for now
+            and #%00000111                ;save 3 LSB for foreground scenery or bg color control
+            cmp #$04
+            bcc StoreFore
+            sta BackgroundColorCtrl       ;if 4 or greater, save value here as bg color control
+            lda #$00
+StoreFore:  sta ForegroundScenery         ;if less, save value here as foreground scenery
+            pla                           ;pull byte from stack and push it back
+            pha
+            and #%00111000                ;save player entrance control bits
+            lsr                           ;shift bits over to LSBs
+            lsr
+            lsr
+            sta PlayerEntranceCtrl        ;save value here as player entrance control
+            pla                           ;pull byte again but do not push it back
+            and #%11000000                ;save 2 MSB for game timer setting
+            clc
+            rol                           ;rotate bits over to LSBs
+            rol
+            rol
+            sta GameTimerSetting          ;save value here as game timer setting
+            iny
+            lda (AreaData),y              ;load second byte of header
+            pha                           ;save to stack
+            and #%00001111                ;mask out all but lower nybble
+            sta TerrainControl
+            pla                           ;pull and push byte to copy it to A
+            pha
+            and #%00110000                ;save 2 MSB for background scenery type
+            lsr
+            lsr                           ;shift bits to LSBs
+            lsr
+            lsr
+            sta BackgroundScenery         ;save as background scenery
+            pla           
+            and #%11000000
+            clc
+            rol                           ;rotate bits over to LSBs
+            rol
+            rol
+            cmp #%00000011                ;if set to 3, store here
+            bne StoreStyle                ;and nullify other value
+            sta CloudTypeOverride         ;otherwise store value in other place
+            lda #$00
+StoreStyle: sta AreaStyle
+            ldy #$00                      ;init counter
+ADataLoop:  lda (AreaData),y              ;store area data into region of RAM
+            sta AreaDataCopy,y
+            iny                           ;increment Y for next byte
+            cmp #$fd                      ;did we just store a $fd byte?
+            bne ADataLoop                 ;if not, we aren't done storing area data yet
+            lda #>AreaDataCopy            ;now move area data pointers to RAM
+            sta AreaDataHigh
+            lda #<AreaDataCopy
+            sta AreaDataLow
+            ldy #$00                      ;init counter
+EDataLoop:  lda (EnemyData),y             ;store enemy data into region of RAM
+            sta EnemyDataCopy,y
+            iny                           ;increment Y for next byte
+            cmp #$ff                      ;did we just store a $ff byte?
+            bne EDataLoop                 ;if not, we aren't done storing enemy data yet
+            lda #>EnemyDataCopy           ;now move enemy data pointers to RAM
+            sta EnemyDataHigh
+            lda #<EnemyDataCopy
+            sta EnemyDataLow              ;(credit to threecreepio for this code)
+            lda AreaDataLow               ;increment area data address by 2 bytes
+            clc
+            adc #$02
+            sta AreaDataLow
+            lda AreaDataHigh
+            adc #$00
+            sta AreaDataHigh
+            jmp LoadMainBank
 
-ForRestoringPeace:
-    .byte $25, $86, 19
-    .byte "FOR RESTORING PEACE"
-    .byte $00
+;--------------------------------
 
-ToOurKingdom:
-    .byte $25, $c6, 15
-    .byte "TO OUR KINGDOM."
-    .byte $00
-	
-HurrahToOurHeroMsg:
-    .byte $26, $06, 19
-    .byte "HURRAH TO OUR HERO,"
-    .byte $00
+WorldAddrOffsets_SMB1:
+      .byte World1Areas_SMB1-AreaAddrOffsets_SMB1
+      .byte World2Areas_SMB1-AreaAddrOffsets_SMB1
+      .byte World3Areas_SMB1-AreaAddrOffsets_SMB1
+      .byte World4Areas_SMB1-AreaAddrOffsets_SMB1
+      .byte World5Areas_SMB1-AreaAddrOffsets_SMB1
+      .byte World6Areas_SMB1-AreaAddrOffsets_SMB1
+      .byte World7Areas_SMB1-AreaAddrOffsets_SMB1
+      .byte World8Areas_SMB1-AreaAddrOffsets_SMB1
+      .byte World9Areas_SMB1-AreaAddrOffsets_SMB1
 
-PeaceIsPavedMsg:
-    ;.byte $25, $08, $10
-    ;.byte $1d, $11, $0a, $17, $14, $24, $22, $18, $1e, $24
-    ;.byte $16, $0a, $1b, $12, $18, $27
+AreaAddrOffsets_SMB1:
+World1Areas_SMB1: .byte $25, $29, $40, $26, $60
+World2Areas_SMB1: .byte $28, $29, $01, $27, $62
+World3Areas_SMB1: .byte $24, $35, $20, $63
+World4Areas_SMB1: .byte $22, $29, $41, $2c, $61
+World5Areas_SMB1: .byte $2a, $31, $26, $62
+World6Areas_SMB1: .byte $2e, $23, $2d, $60
+World7Areas_SMB1: .byte $33, $29, $01, $27, $64
+World8Areas_SMB1: .byte $30, $32, $21, $65
+World9Areas_SMB1: .byte $03, $04, $43
 
-    ;.byte $27, $d0, $58, $aa
-    ;.byte $00
+LevelAddrOffsets_SMB1:
+      .byte $00, $06, $1c, $20
+EnemyDataAddrs_SMB1:
+      .word E_WaterArea1_, E_WaterArea2_, E_WaterArea3_, E_WaterArea4_, E_WaterArea5_, E_WaterArea6_
+      .word E_GroundArea1_, E_GroundArea2_, E_GroundArea3_
+      .word E_GroundArea4_, E_GroundArea5_, E_GroundArea6_, E_GroundArea7_, E_GroundArea8_, E_GroundArea9_
+      .word E_GroundArea10_, E_GroundArea11_, E_GroundArea12_, E_GroundArea13_, E_GroundArea14_, E_GroundArea15_
+      .word E_GroundArea16_, E_GroundArea17_, E_GroundArea18_, E_GroundArea19_, E_GroundArea20_, E_GroundArea21_
+      .word E_GroundArea22_, E_UndergroundArea1_, E_UndergroundArea2_, E_UndergroundArea3_, E_UndergroundArea4_
+      .word E_CastleArea1_, E_CastleArea2_, E_CastleArea3_, E_CastleArea4_, E_CastleArea5_, E_CastleArea6_
+AreaDataAddrs_SMB1:
+      .word L_WaterArea1_, L_WaterArea2_, L_WaterArea3_, L_WaterArea4_, L_WaterArea5_, L_WaterArea6_
+      .word L_GroundArea1_, L_GroundArea2_, L_GroundArea3_
+      .word L_GroundArea4_, L_GroundArea5_, L_GroundArea6_, L_GroundArea7_, L_GroundArea8_, L_GroundArea9_
+      .word L_GroundArea10_, L_GroundArea11_, L_GroundArea12_, L_GroundArea13_, L_GroundArea14_, L_GroundArea15_
+      .word L_GroundArea16_, L_GroundArea17_, L_GroundArea18_, L_GroundArea19_, L_GroundArea20_, L_GroundArea21_
+      .word L_GroundArea22_, L_UndergroundArea1_, L_UndergroundArea2_, L_UndergroundArea3_, L_UndergroundArea4_
+      .word L_CastleArea1_, L_CastleArea2_, L_CastleArea3_, L_CastleArea4_, L_CastleArea5_, L_CastleArea6_
 
-WithKingdomSavedMsg:
-    ;.byte $25, $46, $14
-    ;.byte $1d, $11, $0e, $24, $14, $12, $17, $10, $0d, $18, $16, $24, $12, $1C, $24
-    ;.byte $1c, $0a, $1f, $0e, $0d
-    ;.byte $00
+;--------------------------------
 
-OurOnlyHeroMsg:
-    ;.byte $25, $87, $13
-    ;.byte $11, $1e, $1b, $1b, $0a, $11, $24, $1d, $18, $24
-    ;.byte $18, $1e, $1b, $24, $11, $0e, $1b, $18, $2a
-    ;.byte $00
+WorldAddrOffsets_SMB2:
+      .byte World1Areas_SMB2-AreaAddrOffsets_SMB2
+      .byte World2Areas_SMB2-AreaAddrOffsets_SMB2
+      .byte World3Areas_SMB2-AreaAddrOffsets_SMB2
+      .byte World4Areas_SMB2-AreaAddrOffsets_SMB2
+      .byte World5Areas_SMB2-AreaAddrOffsets_SMB2
+      .byte World6Areas_SMB2-AreaAddrOffsets_SMB2
+      .byte World7Areas_SMB2-AreaAddrOffsets_SMB2
+      .byte World8Areas_SMB2-AreaAddrOffsets_SMB2
+      .byte World9Areas_SMB2-AreaAddrOffsets_SMB2
 
-MarioHurrahMsg:
-    .byte $26, $46, 6
-    .byte "MARIO!"
-    .byte $00
+      .byte WorldAAreas_SMB2-AreaAddrOffsets_SMB2
+      .byte WorldBAreas_SMB2-AreaAddrOffsets_SMB2
+      .byte WorldCAreas_SMB2-AreaAddrOffsets_SMB2
+      .byte WorldDAreas_SMB2-AreaAddrOffsets_SMB2
 
-LuigiHurrahMsg:
-    .byte $26, $46, 6
-    .byte "LUIGI!"
-    .byte $00
+AreaAddrOffsets_SMB2:
+World1Areas_SMB2: .byte $20, $29, $40, $21, $60
+World2Areas_SMB2: .byte $22, $23, $24, $61
+World3Areas_SMB2: .byte $25, $29, $00, $26, $62
+World4Areas_SMB2: .byte $27, $28, $2a, $63
+World5Areas_SMB2: .byte $2b, $29, $43, $2c, $64
+World6Areas_SMB2: .byte $2d, $29, $01, $2e, $65
+World7Areas_SMB2: .byte $2f, $30, $31, $66
+World8Areas_SMB2: .byte $32, $35, $36, $67
+World9Areas_SMB2: .byte $38, $06, $68, $07
 
-ThisEndsYourTripMsg:
-    ;.byte $26, $07, $13
-    ;.byte $1d, $11, $12, $1c, $24, $0e, $17, $0d, $1c, $24, $22, $18, $1e
-    ;.byte $1b, $24, $1d, $1b, $12, $19
-    ;.byte $00
+WorldAAreas_SMB2: .byte $20, $2c, $40, $21, $60
+WorldBAreas_SMB2: .byte $22, $2c, $00, $23, $61
+WorldCAreas_SMB2: .byte $24, $25, $26, $62
+WorldDAreas_SMB2: .byte $27, $28, $29, $63
 
-OfALongFriendshipMsg:
-    ;.byte $26, $46, $14
-    ;.byte $18, $0f, $24, $0a, $24, $15, $18, $17, $10, $24, $0f, $1b, $12
-    ;.byte $0e, $17, $0d, $1c, $11, $12, $19
-    ;.byte $00
+LevelAddrOffsets_SMB2:
+      .byte $2c, $0a, $27, $00
+EnemyDataAddrs_SMB2:
+      .word E_CastleArea1, E_CastleArea2, E_CastleArea3, E_CastleArea4, E_CastleArea5, E_CastleArea6
+      .word E_CastleArea7, E_CastleArea8, E_CastleArea9, E_CastleArea10, E_GroundArea1, E_GroundArea2
+      .word E_GroundArea3, E_GroundArea4, E_GroundArea5, E_GroundArea6, E_GroundArea7, E_GroundArea8
+      .word E_GroundArea9, E_GroundArea10, E_GroundArea11, E_GroundArea12, E_GroundArea13, E_GroundArea14
+      .word E_GroundArea15, E_GroundArea16, E_GroundArea17, E_GroundArea18, E_GroundArea19, E_GroundArea20
+      .word E_GroundArea21, E_GroundArea22, E_GroundArea23, E_GroundArea24, E_GroundArea25, E_GroundArea26
+      .word E_GroundArea27, E_GroundArea28, E_GroundArea29, E_UndergroundArea1, E_UndergroundArea2
+      .word E_UndergroundArea3, E_UndergroundArea4, E_UndergroundArea5, E_WaterArea1, E_WaterArea2
+      .word E_WaterArea3, E_WaterArea4, E_WaterArea5, E_WaterArea6, E_WaterArea7, E_WaterArea8
+AreaDataAddrs_SMB2:
+      .word L_CastleArea1, L_CastleArea2, L_CastleArea3, L_CastleArea4, L_CastleArea5, L_CastleArea6
+      .word L_CastleArea7, L_CastleArea8, L_CastleArea9, L_CastleArea10, L_GroundArea1, L_GroundArea2
+      .word L_GroundArea3, L_GroundArea4, L_GroundArea5, L_GroundArea6, L_GroundArea7, L_GroundArea8
+      .word L_GroundArea9, L_GroundArea10, L_GroundArea11, L_GroundArea12, L_GroundArea13, L_GroundArea14
+      .word L_GroundArea15, L_GroundArea16, L_GroundArea17, L_GroundArea18, L_GroundArea19, L_GroundArea20
+      .word L_GroundArea21, L_GroundArea22, L_GroundArea23, L_GroundArea24, L_GroundArea25, L_GroundArea26
+      .word L_GroundArea27, L_GroundArea28, L_GroundArea29, L_UndergroundArea1, L_UndergroundArea2
+      .word L_UndergroundArea3, L_UndergroundArea4, L_UndergroundArea5, L_WaterArea1, L_WaterArea2
+      .word L_WaterArea3, L_WaterArea4, L_WaterArea5, L_WaterArea6, L_WaterArea7, L_WaterArea8
 
-PointsAddedMsg:
-    .byte $26, $88, 17
-    .byte "100000 PTS. ADDED"
+UraLevelAddrOffsets_SMB2:
+      .byte $14, $04, $12, $00
+UraEnemyDataAddrs_SMB2:
+      .word E_CastleArea11, E_CastleArea12, E_CastleArea13, E_CastleArea14, E_GroundArea30, E_GroundArea31
+      .word E_GroundArea32, E_GroundArea33, E_GroundArea34, E_GroundArea35, E_GroundArea36, E_GroundArea37
+      .word E_GroundArea38, E_GroundArea39, E_GroundArea40, E_GroundArea41, E_GroundArea10, E_GroundArea28
+      .word E_UndergroundArea6, E_UndergroundArea7, E_WaterArea9
+UraAreaDataAddrs_SMB2:
+      .word L_CastleArea11, L_CastleArea12, L_CastleArea13, L_CastleArea14, L_GroundArea30, L_GroundArea31
+      .word L_GroundArea32, L_GroundArea33, L_GroundArea34, L_GroundArea35, L_GroundArea36, L_GroundArea37
+      .word L_GroundArea38, L_GroundArea39, L_GroundArea40, L_GroundArea41, L_GroundArea10, L_GroundArea28
+      .word L_UndergroundArea6, L_UndergroundArea7, L_WaterArea9
 
-    .byte $27, $e8, $48, $ff
-    .byte $00
+;--------------------------------
 
-ForEachPlayerLeftMsg:
-    .byte $26, $a6, 21
-    .byte "FOR EACH PLAYER LEFT."
-    .byte $00
+WorldAddrOffsets_VSSMB:
+      .byte World1Areas_VSSMB-AreaAddrOffsets_VSSMB
+      .byte World2Areas_VSSMB-AreaAddrOffsets_VSSMB
+      .byte World3Areas_VSSMB-AreaAddrOffsets_VSSMB
+      .byte World4Areas_VSSMB-AreaAddrOffsets_VSSMB
+      .byte World5Areas_VSSMB-AreaAddrOffsets_VSSMB
+      .byte World6Areas_VSSMB-AreaAddrOffsets_VSSMB
+      .byte World7Areas_VSSMB-AreaAddrOffsets_VSSMB
+      .byte World8Areas_VSSMB-AreaAddrOffsets_VSSMB
 
-PrincessPeachsRoom:
-    ;.byte $20, $80, $60, $48
-    ;.byte $20, $a0, $60, $49
-    ;.byte $23, $40, $60, $48
-    ;.byte $23, $60, $60, $49
-    ;.byte $23, $80, $60, $48
-    ;.byte $23, $a0, $60, $49
-    ;.byte $23, $c0, $50, $55
-    ;.byte $23, $f0, $50, $55
-    ;.byte $00
+AreaAddrOffsets_VSSMB:
+World1Areas_VSSMB: .byte $25, $29, $40, $36, $66
+World2Areas_VSSMB: .byte $28, $29, $03, $37, $62
+World3Areas_VSSMB: .byte $24, $35, $20, $63
+World4Areas_VSSMB: .byte $22, $29, $41, $2c, $67
+World5Areas_VSSMB: .byte $2a, $31, $2d, $61
+World6Areas_VSSMB: .byte $2e, $23, $26, $60
+World7Areas_VSSMB: .byte $33, $29, $01, $27, $64
+World8Areas_VSSMB: .byte $30, $32, $21, $65
 
-FantasyWorld9Msg:
-    ;.byte $22, $24, $18
-    ;.byte $20, $0e, $24, $19, $1b, $0e, $1c, $0e, $17, $1d, $24, $0f, $0a
-    ;.byte $17, $1d, $0a, $1c, $22, $24, $20, $18, $1b, $15, $0d
-
-    ;.byte $22, $66, $13
-    ;.byte $15, $0e, $1d, $2a, $1c, $24, $1d, $1b, $22, $24, $76, $09, $24
-    ;.byte $20, $18, $1b, $15, $0d, $75
-
-    ;.byte $22, $a9, $0e
-    ;.byte $20, $12, $1d, $11, $24, $18, $17, $0e, $24, $10, $0a, $16, $0e
-    ;.byte $28
-    ;.byte $00
-
-ThanksForPlayingMsg:
-    ;clears "CONTINUE", "SAVE", and "RETRY" text
-    .byte $21, $e0, $60, BG_BLANK
-    .byte $22, $40, $60, BG_BLANK
-    .byte $22, $a0, $60, BG_BLANK
-
-    ;"THANKS FOR PLAYING"
-    .byte $21, $e5, 21
-    .byte "THANK YOU FOR PLAYING"
-
-    ;"OUR FIRST DEMO!"
-    .byte $22, $25, 15
-    .byte "OUR FIRST DEMO!"
-
-    ;"DEVELOPED BY:"
-    .byte $22, $85, 21
-    .byte "DEVELOPED BY ALEXYWEB"
-
-    ;"-SIMPLISTIC6502"
-    .byte $22, $c5, 18
-    .byte "AND SIMPLISTIC6502"
-
-    .byte $00
+LevelAddrOffsets_VSSMB:
+      .byte 0, 4, 28, 31
+EnemyDataAddrs_VSSMB:
+      .word E_Area00_VSSMB, E_Area01_VSSMB, E_Area02_VSSMB, E_Area03_VSSMB
+      .word E_Area20_VSSMB, E_Area21_VSSMB, E_Area22_VSSMB, E_Area23_VSSMB, E_Area24_VSSMB, E_Area25_VSSMB, E_Area26_VSSMB, E_Area27_VSSMB
+      .word E_Area28_VSSMB, E_Area29_VSSMB, E_Area2A_VSSMB, E_Area2B_VSSMB, E_Area2C_VSSMB, E_Area2D_VSSMB, E_Area2E_VSSMB, E_Area2F_VSSMB
+      .word E_Area30_VSSMB, E_Area31_VSSMB, E_Area32_VSSMB, E_Area33_VSSMB, E_Area34_VSSMB, E_Area35_VSSMB, E_Area36_VSSMB, E_Area37_VSSMB
+      .word E_Area40_VSSMB, E_Area41_VSSMB, E_Area42_VSSMB
+      .word E_Area60_VSSMB, E_Area61_VSSMB, E_Area62_VSSMB, E_Area63_VSSMB, E_Area64_VSSMB, E_Area65_VSSMB, E_Area66_VSSMB, E_Area67_VSSMB
+AreaDataAddrs_VSSMB:
+      .word L_Area00_VSSMB, L_Area01_VSSMB, L_Area02_VSSMB, L_Area03_VSSMB
+      .word L_Area20_VSSMB, L_Area21_VSSMB, L_Area22_VSSMB, L_Area23_VSSMB, L_Area24_VSSMB, L_Area25_VSSMB, L_Area26_VSSMB, L_Area27_VSSMB
+      .word L_Area28_VSSMB, L_Area29_VSSMB, L_Area2A_VSSMB, L_Area2B_VSSMB, L_Area2C_VSSMB, L_Area2D_VSSMB, L_Area2L_VSSMB, L_Area2F_VSSMB
+      .word L_Area30_VSSMB, L_Area31_VSSMB, L_Area32_VSSMB, L_Area33_VSSMB, L_Area34_VSSMB, L_Area35_VSSMB, L_Area36_VSSMB, L_Area37_VSSMB
+      .word L_Area40_VSSMB, L_Area41_VSSMB, L_Area42_VSSMB
+      .word L_Area60_VSSMB, L_Area61_VSSMB, L_Area62_VSSMB, L_Area63_VSSMB, L_Area64_VSSMB, L_Area65_VSSMB, L_Area66_VSSMB, L_Area67_VSSMB
 
 ;-------------------------------------------------------------------------------------
-; FIXED BANK
-.res $F800 - *, $FF
 
 MoveAllSpritesOffscreen:
               ldy #$00                ;this routine moves all sprites off the screen
@@ -16061,8 +15681,9 @@ WritePPUReg1:
 ;$05 - memory table high
 ;$06 - RAM address low
 ;$07 - RAM address high
-;$0160 - lower bound for page
+;$0168 - lower bound for page
 
+;(TO-DO: isn't this a bit overkill?)
 InitializeMemory:
               sty $04           ;set pointer to memory table
               stx $05
@@ -16074,14 +15695,14 @@ InitPageLoop: stx $07
               asl
               tay
               lda ($04),y
-              sta $0160
+              sta MemClr_Low
               iny               ;set upper bound for this page
               lda ($04),y
               tay
               lda #$00
 InitByte:     sta ($06),y       ;initialize memory
 SkipByte:     dey
-              cpy $0160         ;do this until all bytes in page have been erased
+              cpy MemClr_Low    ;do this until all bytes in page have been erased
               bne InitByte
               dex               ;go onto the next page
               bpl InitPageLoop  ;do this until all desired pages of memory have been erased
@@ -16121,7 +15742,7 @@ Memory_InitializeGame:
 
 ;-------------------------------------------------------------------------------------
 
-; A: max option index
+; A: number of options
 ; $00-$01: pointer to selection index
 ; Returns with carry set if user backed out of menu or made selection,
 ; returns with carry clear if not.
@@ -16130,6 +15751,7 @@ Memory_InitializeGame:
 ; if user selected the next option.
 MenuSelectionLogic:
         sta $02
+        dec $02
         ldx #$00
         lda PressedJoypadBits
         and #Start_Button+B_Button+A_Button
@@ -16221,10 +15843,12 @@ DoErase:
 		rts
 
 ;-------------------------------------------------------------------------------------
+
 BGTiles:
-      .byte $02,$03
+      .byte $02,$03,$04
 SprTiles:
-      .byte $0d,$0e
+      .byte $0d,$0e,$0f
+
 FontTiles:
       .byte $00,$01
 SprTiles2:
@@ -16233,71 +15857,126 @@ SprTiles2:
 LoadGameTileset:
       ; load tileset based on menu selection
       ; if per-game, tilset depends on levels played
-      lda #$01
-      sta FME7Command
-      lda #CHR_SMB1
       ldy TilesetSelection
-      bne @static_tileset
-      ldy LevelSet
+      bne @write_tileset
+      ; dumbass workaround for VS
+      ldy #$03
+      lda LevelSet
+      cmp #LEVELS_ANNSMB
       beq @write_tileset
-      bne @smb2_tileset
-@static_tileset:
-      cpy #$01
+      dey
+      cmp #LEVELS_SMB2
       beq @write_tileset
-@smb2_tileset:
-      lda #CHR_SMB2
+      dey
 @write_tileset:
-      tay
+      dey
       lda BGTiles,y
-      sta FME7Parameter
-      lda #$05
-      sta FME7Command
+      sta Mirror_CHRBank_1
       lda SprTiles,y
-      sta FME7Parameter
-      lda #$07
-      sta FME7Command
-      lda SprTiles2,y
-      sta FME7Parameter
+      sta Mirror_CHRBank_5
 
       ; load generic banks (TO-DO: replace this)
-      lda #$02
-      sta FME7Command
       lda #$06
-      sta FME7Parameter
-      lda #$03
-      sta FME7Command
+      sta Mirror_CHRBank_2
       lda #$09
-      sta FME7Parameter
-      lda #$04
-      sta FME7Command
+      sta Mirror_CHRBank_3
       lda #$0b
-      sta FME7Parameter
-      lda #$06
-      sta FME7Command
+      sta Mirror_CHRBank_4
       lda #$12
-      sta FME7Parameter
+      sta Mirror_CHRBank_6
+
+      ; load font based on menu selection
+      ldy FontSelection
+      bne @write_font
+      ldy #$01
+      lda CurrentGame
+      cmp #GAME_SMB1
+      beq @write_font
+      ldy #$02
+@write_font:
+      dey
+      lda FontTiles,y
+      sta Mirror_CHRBank_0
+      lda SprTiles2,y
+      sta Mirror_CHRBank_7
       rts
 
-LoadFontTileset:
-      ; load font based on menu selection
-      lda #$00
-      sta FME7Command
-      ldy FontSelection
-      bne @static_fonts
-      ldy CurrentGame
-      cpy #$01
-      beq @write_font
-      bne @smb2_font
-@static_fonts:
-      cpy #$01
-      beq @write_font
-@smb2_font:
-      lda #CHR_SMB2
-@write_font:
+;------------------------------------------------------------------------------------
+
+WorldAddrOffsetPointers:
+      .word WorldAddrOffsets_SMB1
+      .word WorldAddrOffsets_SMB2
+      .word WorldAddrOffsets_VSSMB
+      .word WorldAddrOffsets_SMB2
+AreaAddrOffsetPointers:
+      .word AreaAddrOffsets_SMB1
+      .word AreaAddrOffsets_SMB2
+      .word AreaAddrOffsets_VSSMB
+      .word AreaAddrOffsets_SMB2
+
+LevelAddrOffsetPointers:
+      .word LevelAddrOffsets_SMB1
+      .word LevelAddrOffsets_SMB2
+      .word UraLevelAddrOffsets_SMB2
+      .word LevelAddrOffsets_VSSMB
+      .word LevelAddrOffsets_SMB2
+      .word UraLevelAddrOffsets_SMB2
+EnemyDataAddrPointers:
+      .word EnemyDataAddrs_SMB1
+      .word EnemyDataAddrs_SMB2
+      .word UraEnemyDataAddrs_SMB2
+      .word EnemyDataAddrs_VSSMB
+      .word EnemyDataAddrs_SMB2
+      .word UraEnemyDataAddrs_SMB2
+AreaDataAddrPointers:
+      .word AreaDataAddrs_SMB1
+      .word AreaDataAddrs_SMB2
+      .word UraAreaDataAddrs_SMB2
+      .word AreaDataAddrs_VSSMB
+      .word AreaDataAddrs_SMB2
+      .word UraAreaDataAddrs_SMB2
+
+LevelSetBanks:
+      .byte LevelsBank1, LevelsBank1, LevelsBank2, LevelsBank2
+LevelSetBaseOffsets:
+      .byte 0, 1, 3, 4
+
+UpdateLevelSet:
+      sta LevelSet                        ;update level set variable
+LoadLevelSet:
+      ldy LevelSet
+      lda LevelSetBanks,y                 ;store bank number for this level set
+      sta WRAM_LevelBank
+      tya
+      asl                                 ;multiply by 2 for offset into data tables
       tay
-      lda FontTiles,y
-      sta FME7Parameter
-      rts
+      lda WorldAddrOffsetPointers,y       ;store pointers for area ID lookups
+      sta WRAM_WorldAddrOffsets
+      lda WorldAddrOffsetPointers+1,y
+      sta WRAM_WorldAddrOffsets+1
+      lda AreaAddrOffsetPointers,y
+      sta WRAM_AreaAddrOffsets
+      lda AreaAddrOffsetPointers+1,y
+      sta WRAM_AreaAddrOffsets+1
+      ldy LevelSet                        ;calculate updated offset for subsequent tables
+      lda LevelSetBaseOffsets,y
+      clc
+      adc HardWorldFlag                   ;adjust offset if in letter worlds
+      asl                                 ;multiply by 2 for correct offset
+      tay
+      lda LevelAddrOffsetPointers,y       ;store pointers for area address lookups
+      sta WRAM_LevelAddrOffsets
+      lda LevelAddrOffsetPointers+1,y
+      sta WRAM_LevelAddrOffsets+1
+      lda EnemyDataAddrPointers,y
+      sta WRAM_EnemyDataAddrs
+      lda EnemyDataAddrPointers+1,y
+      sta WRAM_EnemyDataAddrs+1
+      lda AreaDataAddrPointers,y
+      sta WRAM_AreaDataAddrs
+      lda AreaDataAddrPointers+1,y
+      sta WRAM_AreaDataAddrs+1
+      rts                                 ;we're done here!
 
 ;------------------------------------------------------------------------------------
 
@@ -16329,18 +16008,18 @@ Switch16KBank:
 TempSwitch16KBank:
     ;bankswitch $8000-$9FFF region
     pha
-    lda #$09
-    sta FME7Command
+    lda #FME7_PRGBank_1
+    sta FME7_COMMAND
     pla
-    sta FME7Parameter
+    sta FME7_PARAMETER
     ;bankswitch $A000-$BFFF region
     clc
     adc #$01
     pha
-    lda #$0a
-    sta FME7Command
+    lda #FME7_PRGBank_2
+    sta FME7_COMMAND
     pla
-    sta FME7Parameter
+    sta FME7_PARAMETER
     rts
 
 RunSoundEngine:
@@ -16354,29 +16033,9 @@ InGame:
     lda #MainBank
     jmp TempSwitch16KBank ;and return to main bank
 
-RunLoadAreaPointer:
-    lda #LevelsBank       ;switch bank
-    jsr Switch16KBank
-    jsr LoadAreaPointer   ;run relevant routine
-    jmp LoadMainBank      ;and return to main bank
-
-RunGetAreaDataAddrs:
-    lda #LevelsBank       ;switch bank
-    jsr Switch16KBank
-    jsr GetAreaDataAddrs  ;run relevant routine
-    jmp LoadMainBank      ;and return to main bank
-
-RunGetAreaPointer:
-    lda #LevelsBank       ;switch bank
-    jsr Switch16KBank
-    jsr GetAreaPointer    ;run relevant routine
-    jmp LoadMainBank      ;and return to main bank
-
 BootIntoGame:
         lda #$03
-        sta FME7Command
-        lda #$03
-        sta FME7Parameter
+        sta Mirror_CHRBank_3
         lda #MainBank
         jsr Switch16KBank           ;switch PRG banks
         jsr CheckSaveData           ;check validity of save data
@@ -16402,6 +16061,8 @@ VRAM_AddrTable:
    .word TitleScreenGfxData_Complete
    .word TitleScreenGfxData_SMB1
    .word TitleScreenGfxData_SMB2
+   .word TitleScreenGfxData_VSSMB
+   .word TitleScreenGfxData_ANNSMB
 
    ; end-of-castle messages for toad
    .word MarioThankYouMsg
@@ -16431,6 +16092,666 @@ VRAM_AddrTable:
    ; final ending screen
    .word ThanksForPlayingMsg
 
+;--------------------------------
+
+WaterPaletteData:
+  .byte $3f, $00, $20
+  .byte $0f, $15, $12, $25
+  .byte $0f, $3a, $1a, $0f
+  .byte $0f, $30, $12, $0f
+  .byte $0f, $27, $12, $0f
+  .byte $0f, $16, $27, $18
+  .byte $0f, $1a, $30, $27
+  .byte $0f, $16, $30, $27
+  .byte $0f, $0f, $30, $10
+  .byte $00
+
+GroundPaletteData:
+  .byte $3f, $00, $20
+  .byte $0f, $29, $1a, $0f
+  .byte $0f, $36, $17, $0f
+  .byte $0f, $30, $21, $0f
+  .byte $0f, $27, $17, $0f
+  .byte $0f, $16, $27, $18
+  .byte $0f, $1a, $30, $27
+  .byte $0f, $16, $30, $27
+  .byte $0f, $0f, $36, $17
+  .byte $00
+
+UndergroundPaletteData:
+  .byte $3f, $00, $20
+  .byte $0f, $29, $1a, $09
+  .byte $0f, $3c, $1c, $0f
+  .byte $0f, $30, $21, $1c
+  .byte $0f, $27, $17, $1c
+  .byte $0f, $16, $27, $18
+  .byte $0f, $1c, $36, $17
+  .byte $0f, $16, $30, $27
+  .byte $0f, $0c, $3c, $1c
+  .byte $00
+
+CastlePaletteData:
+  .byte $3f, $00, $20
+  .byte $0f, $30, $10, $00
+  .byte $0f, $30, $10, $00
+  .byte $0f, $30, $16, $00
+  .byte $0f, $27, $17, $00
+  .byte $0f, $16, $27, $18
+  .byte $0f, $1c, $36, $17
+  .byte $0f, $16, $30, $27
+  .byte $0f, $00, $30, $10
+  .byte $00
+
+SnowPaletteData:
+  .byte $3f, $00, $04
+  .byte $0f, $30, $00, $10
+  .byte $00
+
+MushroomPaletteData:
+  .byte $3f, $00, $04
+  .byte $22, $27, $16, $0f
+  .byte $00
+
+BowserPaletteData:
+  .byte $3f, $14, $04
+  .byte $0f, $1a, $30, $27
+  .byte $00
+
+;--------------------------------
+
+TitleScreenGfxData_Complete:
+  ;logo
+  .byte $20, $85, 1
+  .byte BG_LOGO
+  .byte $20, $86, $40+20
+  .byte BG_LOGO+1
+  .byte $20, $9a, 1
+  .byte BG_LOGO+2
+  .byte $20, $a5, $c0+13
+  .byte BG_LOGO+3
+  .byte $20, $a6, 10
+  .byte BG_LOGO+8, BG_LOGO+9, BG_LOGO+16, BG_LOGO+16, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8, BG_LOGO+18
+  .byte BG_LOGO+22, BG_LOGO+9
+  .byte $20, $b0, $40+10
+  .byte BG_COLOR_2
+  .byte $20, $ba, $c0+13
+  .byte BG_LOGO+4
+  .byte $20, $c6, 10
+  .byte BG_LOGO+10, BG_LOGO+11, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+20
+  .byte BG_LOGO+19, BG_LOGO+23
+  .byte $20, $d0, $40+10
+  .byte BG_COLOR_2
+  .byte $20, $e6, 10
+  .byte BG_LOGO+12, BG_LOGO+13, BG_LOGO+12, BG_LOGO+17, BG_LOGO+19, BG_LOGO+26, BG_LOGO+12, BG_LOGO+18
+  .byte BG_LOGO+19, BG_LOGO+24
+  .byte $20, $f0, $40+10
+  .byte BG_COLOR_2
+  .byte $21, $06, 10
+  .byte BG_LOGO+14, BG_LOGO+15, BG_LOGO+14, BG_LOGO+15, BG_LOGO+25, BG_COLOR_2, BG_LOGO+14, BG_LOGO+21
+  .byte BG_LOGO+25, BG_LOGO+25
+  .byte $21, $10, $40+10
+  .byte BG_COLOR_2
+  .byte $21, $26, 20
+  .byte BG_LOGO+8, BG_LOGO+32, BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+16
+  .byte BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_LOGO+22, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8
+  .byte BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_COLOR_2
+  .byte $21, $46, 20
+  .byte BG_LOGO+19, BG_LOGO+28, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+  .byte BG_LOGO+19, BG_LOGO+28, BG_COLOR_2, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+  .byte BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_COLOR_2
+  .byte $21, $66, $40+6
+  .byte BG_LOGO+19
+  .byte $21, $6c, 14
+  .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+23, BG_LOGO+19
+  .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+10, BG_LOGO+29, BG_COLOR_2
+  .byte $21, $86, 20
+  .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+22, BG_LOGO+31, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+  .byte BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+  .byte BG_LOGO+19, BG_LOGO+30, BG_LOGO+27, BG_COLOR_2
+  .byte $21, $a6, 20
+  .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19
+  .byte BG_LOGO+12, BG_LOGO+17, BG_COLOR_2, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+19, BG_LOGO+12
+  .byte BG_LOGO+17, BG_LOGO+12, BG_LOGO+17, BG_LOGO+16
+  .byte $21, $c6, $40+8
+  .byte BG_LOGO+25
+  .byte $21, $ce, 12
+  .byte BG_LOGO+14, BG_LOGO+15, BG_COLOR_2, BG_LOGO+25, BG_LOGO+26, BG_LOGO+25, BG_LOGO+25, BG_LOGO+14
+  .byte BG_LOGO+15, BG_LOGO+14, BG_LOGO+15, BG_LOGO+25
+  .byte $21, $e6, 20
+  .byte BG_LOGO+8, BG_LOGO+18, BG_LOGO+8, BG_LOGO+9, BG_LOGO+8, BG_LOGO+32, BG_LOGO+9, BG_LOGO+22
+  .byte BG_LOGO+9, BG_LOGO+16, BG_COLOR_2, BG_LOGO+8, BG_LOGO+18, BG_LOGO+22, BG_LOGO+18, BG_LOGO+8
+  .byte BG_LOGO+18, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
+  .byte $22, $06, 20
+  .byte BG_LOGO+19, BG_LOGO+21, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+28, BG_LOGO+19
+  .byte BG_LOGO+17, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+20, BG_LOGO+57, BG_LOGO+58, BG_LOGO+19
+  .byte BG_LOGO+20, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
+  .byte $22, $26, 20
+  .byte BG_LOGO+12, BG_LOGO+18, BG_LOGO+12, BG_LOGO+17, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19
+  .byte BG_LOGO+26, BG_LOGO+12, BG_LOGO+18, BG_LOGO+12, BG_LOGO+18, BG_LOGO+59, BG_LOGO+60, BG_LOGO+12
+  .byte BG_LOGO+18, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
+  .byte $22, $45, 1
+  .byte BG_LOGO+5
+  .byte $22, $46, 20
+  .byte BG_LOGO+35, BG_LOGO+41, BG_LOGO+35, BG_LOGO+36, BG_LOGO+33, BG_LOGO+33, BG_LOGO+33, BG_LOGO+33
+  .byte BG_LOGO+6, BG_LOGO+35, BG_LOGO+41, BG_LOGO+35, BG_LOGO+41, BG_LOGO+61, BG_LOGO+62, BG_LOGO+35
+  .byte BG_LOGO+41, BG_LOGO+6, BG_LOGO+6, BG_LOGO+6
+  .byte $22, $5a, 1
+  .byte BG_LOGO+7
+
+  ;options and top score
+  .byte $22, $8d, 10
+  .byte "MARIO GAME"
+  .byte $22, $cd, 10
+  .byte "LUIGI GAME"
+  .byte $23, $0b, 4
+  .byte "TOP-"
+  .byte $23, $15, 1
+  .byte "0"
+
+  ;attribute data
+  .byte $23, $c9, $40+6
+  .byte %01010101
+  .byte $23, $d1, $40+6
+  .byte %01010101
+  .byte $23, $d9, $40+6
+  .byte %01010101
+  .byte $23, $e1, $40+6
+  .byte %01010101
+  .byte $23, $ea, 4
+  .byte %01000100, %10101010, %10101010, %10101010
+  .byte $23, $f2, 4
+  .byte %01011000, %01011010, %01011010, %01010010
+
+  ;terminator
+  .byte $00
+
+TitleScreenGfxData_SMB1:
+  ;logo
+  .byte $20, $85, 1
+  .byte BG_LOGO
+  .byte $20, $86, $40+20
+  .byte BG_LOGO+1
+  .byte $20, $9a, 1
+  .byte BG_LOGO+2
+  .byte $20, $a5, $c0+9
+  .byte BG_LOGO+3
+  .byte $20, $a6, 10
+  .byte BG_LOGO+8, BG_LOGO+9, BG_LOGO+16, BG_LOGO+16, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8, BG_LOGO+18
+  .byte BG_LOGO+22, BG_LOGO+9
+  .byte $20, $b0, $40+10
+  .byte BG_COLOR_2
+  .byte $20, $ba, $c0+9
+  .byte BG_LOGO+4
+  .byte $20, $c6, 10
+  .byte BG_LOGO+10, BG_LOGO+11, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+20
+  .byte BG_LOGO+19, BG_LOGO+23
+  .byte $20, $d0, $40+10
+  .byte BG_COLOR_2
+  .byte $20, $e6, 10
+  .byte BG_LOGO+12, BG_LOGO+13, BG_LOGO+12, BG_LOGO+17, BG_LOGO+19, BG_LOGO+26, BG_LOGO+12, BG_LOGO+18
+  .byte BG_LOGO+19, BG_LOGO+24
+  .byte $20, $f0, $40+10
+  .byte BG_COLOR_2
+  .byte $21, $06, 10
+  .byte BG_LOGO+14, BG_LOGO+15, BG_LOGO+14, BG_LOGO+15, BG_LOGO+25, BG_COLOR_2, BG_LOGO+14, BG_LOGO+21
+  .byte BG_LOGO+25, BG_LOGO+25
+  .byte $21, $10, $40+10
+  .byte BG_COLOR_2
+  .byte $21, $26, 20
+  .byte BG_LOGO+8, BG_LOGO+32, BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+16
+  .byte BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_LOGO+22, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8
+  .byte BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_COLOR_2
+  .byte $21, $46, 20
+  .byte BG_LOGO+19, BG_LOGO+28, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+  .byte BG_LOGO+19, BG_LOGO+28, BG_COLOR_2, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+  .byte BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_COLOR_2
+  .byte $21, $66, $40+6
+  .byte BG_LOGO+19
+  .byte $21, $6c, 14
+  .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+23, BG_LOGO+19
+  .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+10, BG_LOGO+29, BG_COLOR_2
+  .byte $21, $86, 20
+  .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+22, BG_LOGO+31, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+  .byte BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+  .byte BG_LOGO+19, BG_LOGO+30, BG_LOGO+27, BG_COLOR_2
+  .byte $21, $a6, 20
+  .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19
+  .byte BG_LOGO+12, BG_LOGO+17, BG_COLOR_2, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+19, BG_LOGO+12
+  .byte BG_LOGO+17, BG_LOGO+12, BG_LOGO+17, BG_LOGO+16
+  .byte $21, $c5, 1
+  .byte BG_LOGO+5
+  .byte $21, $c6, $40+8
+  .byte BG_LOGO+33
+  .byte $21, $ce, 12
+  .byte BG_LOGO+35, BG_LOGO+36, BG_LOGO+6, BG_LOGO+33, BG_LOGO+34, BG_LOGO+33, BG_LOGO+33, BG_LOGO+35
+  .byte BG_LOGO+36, BG_LOGO+35, BG_LOGO+36, BG_LOGO+33
+  .byte $21, $da, 1
+  .byte BG_LOGO+7
+  .byte $21, $ed, 14
+  .byte "c1985 NINTENDO"
+
+  ;options and top score
+  .byte $22, $4d, 10
+  .byte "MARIO GAME"
+  .byte $22, $8d, 10
+  .byte "LUIGI GAME"
+  .byte $22, $eb, 4
+  .byte "TOP-"
+  .byte $22, $f5, 1
+  .byte "0"
+
+  ;attribute data
+  .byte $23, $c9, $40+6
+  .byte %01010101
+  .byte $23, $d1, $40+6
+  .byte %01010101
+  .byte $23, $d9, $40+6
+  .byte %01010101
+  .byte $23, $e2, 4
+  .byte %01000000, %10100000, %10100000, %10100000
+  .byte $23, $ea, 4
+  .byte %10000100, %10101010, %10101010, %00101010
+
+  ;terminator
+  .byte $00
+TitleScreenGfxData_SMB2:
+  ;logo
+  .byte $20, $84, 1
+  .byte BG_LOGO
+  .byte $20, $85, $40+23
+  .byte BG_LOGO+1
+  .byte $20, $9c, 1
+  .byte BG_LOGO+2
+  .byte $20, $a4, $c0+9
+  .byte BG_LOGO+3
+  .byte $20, $a5, 10
+  .byte BG_LOGO+8, BG_LOGO+9, BG_LOGO+16, BG_LOGO+16, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8, BG_LOGO+18
+  .byte BG_LOGO+22, BG_LOGO+9
+  .byte $20, $af, $40+13
+  .byte BG_COLOR_2
+  .byte $20, $bc, $c0+9
+  .byte BG_LOGO+4
+  .byte $20, $c5, 10
+  .byte BG_LOGO+10, BG_LOGO+11, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+20
+  .byte BG_LOGO+19, BG_LOGO+23
+  .byte $20, $cf, $40+13
+  .byte BG_COLOR_2
+  .byte $20, $e5, 10
+  .byte BG_LOGO+12, BG_LOGO+13, BG_LOGO+12, BG_LOGO+17, BG_LOGO+19, BG_LOGO+26, BG_LOGO+12, BG_LOGO+18
+  .byte BG_LOGO+19, BG_LOGO+24
+  .byte $20, $ef, $40+13
+  .byte BG_COLOR_2
+  .byte $21, $05, 10
+  .byte BG_LOGO+14, BG_LOGO+15, BG_LOGO+14, BG_LOGO+15, BG_LOGO+25, BG_COLOR_2, BG_LOGO+14, BG_LOGO+21
+  .byte BG_LOGO+25, BG_LOGO+25
+  .byte $21, $0f, $40+13
+  .byte BG_COLOR_2
+  .byte $21, $25, 23
+  .byte BG_LOGO+8, BG_LOGO+32, BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+16
+  .byte BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_LOGO+22, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8
+  .byte BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_COLOR_2, BG_LOGO+8, BG_LOGO+9
+  .byte $21, $45, 23
+  .byte BG_LOGO+19, BG_LOGO+28, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+  .byte BG_LOGO+19, BG_LOGO+28, BG_COLOR_2, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+  .byte BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_COLOR_2, BG_COLOR_2, BG_LOGO+19, BG_LOGO+28
+  .byte $21, $65, $40+6
+  .byte BG_LOGO+19
+  .byte $21, $6b, 17
+  .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+23, BG_LOGO+19
+  .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+10, BG_LOGO+29, BG_COLOR_2, BG_COLOR_2, BG_LOGO+37
+  .byte BG_LOGO+38
+  .byte $21, $85, 23
+  .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+22, BG_LOGO+31, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+  .byte BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+  .byte BG_LOGO+19, BG_LOGO+30, BG_LOGO+27, BG_COLOR_2, BG_COLOR_2, BG_LOGO+39, BG_LOGO+40
+  .byte $21, $a5, 23
+  .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19
+  .byte BG_LOGO+12, BG_LOGO+17, BG_COLOR_2, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+19, BG_LOGO+12
+  .byte BG_LOGO+17, BG_LOGO+12, BG_LOGO+17, BG_LOGO+16, BG_COLOR_2, BG_LOGO+22, BG_LOGO+18
+  .byte $21, $c4, 1
+  .byte BG_LOGO+5
+  .byte $21, $c5, $40+8
+  .byte BG_LOGO+33
+  .byte $21, $cd, 15
+  .byte BG_LOGO+35, BG_LOGO+36, BG_LOGO+6, BG_LOGO+33, BG_LOGO+34, BG_LOGO+33, BG_LOGO+33, BG_LOGO+35
+  .byte BG_LOGO+36, BG_LOGO+35, BG_LOGO+36, BG_LOGO+33, BG_LOGO+6, BG_LOGO+33, BG_LOGO+41
+  .byte $21, $dc, 1
+  .byte BG_LOGO+7
+  .byte $21, $ef, 14
+  .byte "c1986 NINTENDO"
+
+  ;options and top score
+  .byte $22, $4d, 10
+  .byte "MARIO GAME"
+  .byte $22, $8d, 10
+  .byte "LUIGI GAME"
+  .byte $22, $eb, 4
+  .byte "TOP-"
+  .byte $22, $f5, 1
+  .byte "0"
+
+  ;attribute data
+  .byte $23, $c9, $40+6
+  .byte %01010101
+  .byte $23, $cf, 1
+  .byte %00010001
+  .byte $23, $d1, $40+5
+  .byte %01010101
+  .byte $23, $d6, 2
+  .byte %11011101, %00010001
+  .byte $23, $d9, $40+5
+  .byte %01010101
+  .byte $23, $de, 2
+  .byte %01011101, %00010001
+  .byte $23, $e2, 4
+  .byte %01000000, %10100000, %10100000, %10100000
+  .byte $23, $ea, 4
+  .byte %10010101, %10101010, %10101010, %00101010
+
+  ;terminator
+  .byte $00
+TitleScreenGfxData_VSSMB:
+  ;logo
+  .byte $20, $85, 1
+  .byte BG_LOGO
+  .byte $20, $86, $40+20
+  .byte BG_LOGO+1
+  .byte $20, $9a, 1
+  .byte BG_LOGO+2
+  .byte $20, $a5, $c0+9
+  .byte BG_LOGO+3
+  .byte $20, $a6, 20
+  .byte BG_LOGO+16, BG_LOGO+16, BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_COLOR_2, BG_LOGO+8, BG_LOGO+9
+  .byte BG_LOGO+16, BG_LOGO+16, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8, BG_LOGO+18, BG_LOGO+22, BG_LOGO+9
+  .byte BG_COLOR_2, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
+  .byte $20, $ba, $c0+9
+  .byte BG_LOGO+4
+  .byte $20, $c6, 20
+  .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+10, BG_LOGO+11, BG_COLOR_2, BG_COLOR_2, BG_LOGO+10, BG_LOGO+11
+  .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+20, BG_LOGO+19, BG_LOGO+23
+  .byte BG_COLOR_2, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
+  .byte $20, $e6, 20
+  .byte BG_LOGO+43, BG_LOGO+44, BG_LOGO+12, BG_LOGO+13, BG_LOGO+16, BG_COLOR_2, BG_LOGO+12, BG_LOGO+13
+  .byte BG_LOGO+12, BG_LOGO+17, BG_LOGO+19, BG_LOGO+26, BG_LOGO+12, BG_LOGO+18, BG_LOGO+19, BG_LOGO+24
+  .byte BG_COLOR_2, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
+  .byte $21, $06, 20
+  .byte BG_LOGO+45, BG_LOGO+46, BG_LOGO+14, BG_LOGO+15, BG_LOGO+25, BG_COLOR_2, BG_LOGO+14, BG_LOGO+15
+  .byte BG_LOGO+14, BG_LOGO+15, BG_LOGO+25, BG_COLOR_2, BG_LOGO+14, BG_LOGO+21, BG_LOGO+25, BG_LOGO+25
+  .byte BG_COLOR_2, BG_COLOR_2, BG_COLOR_2, BG_COLOR_2
+  .byte $21, $26, 20
+  .byte BG_LOGO+8, BG_LOGO+32, BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+16
+  .byte BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_LOGO+22, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8
+  .byte BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_COLOR_2
+  .byte $21, $46, 20
+  .byte BG_LOGO+19, BG_LOGO+28, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+  .byte BG_LOGO+19, BG_LOGO+28, BG_COLOR_2, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+  .byte BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_COLOR_2
+  .byte $21, $66, $40+6
+  .byte BG_LOGO+19
+  .byte $21, $6c, 14
+  .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+23, BG_LOGO+19
+  .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+10, BG_LOGO+29, BG_COLOR_2
+  .byte $21, $86, 20
+  .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+22, BG_LOGO+31, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+  .byte BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+  .byte BG_LOGO+19, BG_LOGO+30, BG_LOGO+27, BG_COLOR_2
+  .byte $21, $a6, 20
+  .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19
+  .byte BG_LOGO+12, BG_LOGO+17, BG_COLOR_2, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+19, BG_LOGO+12
+  .byte BG_LOGO+17, BG_LOGO+12, BG_LOGO+17, BG_LOGO+16
+  .byte $21, $c5, 1
+  .byte BG_LOGO+5
+  .byte $21, $c6, $40+8
+  .byte BG_LOGO+33
+  .byte $21, $ce, 12
+  .byte BG_LOGO+35, BG_LOGO+36, BG_LOGO+6, BG_LOGO+33, BG_LOGO+34, BG_LOGO+33, BG_LOGO+33, BG_LOGO+35
+  .byte BG_LOGO+36, BG_LOGO+35, BG_LOGO+36, BG_LOGO+33
+  .byte $21, $da, 1
+  .byte BG_LOGO+7
+  .byte $21, $ed, 14
+  .byte "c1986 NINTENDO"
+
+  ;options and top score
+  .byte $22, $4d, 10
+  .byte "MARIO GAME"
+  .byte $22, $8d, 10
+  .byte "LUIGI GAME"
+  .byte $22, $eb, 4
+  .byte "TOP-"
+  .byte $22, $f5, 1
+  .byte "0"
+
+  ;attribute data
+  .byte $23, $c9, $40+6
+  .byte %01010101
+  .byte $23, $d1, $40+6
+  .byte %01010101
+  .byte $23, $d9, $40+6
+  .byte %01010101
+  .byte $23, $e2, 4
+  .byte %01000000, %10100000, %10100000, %10100000
+  .byte $23, $ea, 4
+  .byte %10000100, %10101010, %10101010, %00101010
+
+  ;terminator
+  .byte $00
+TitleScreenGfxData_ANNSMB:
+  ;logo
+  .byte $20, $85, 1
+  .byte BG_LOGO
+  .byte $20, $86, $40+20
+  .byte BG_LOGO+1
+  .byte $20, $9a, 1
+  .byte BG_LOGO+2
+  .byte $20, $a5, $c0+9
+  .byte BG_LOGO+3
+  .byte $20, $a6, 20
+  .byte BG_LOGO+47, BG_LOGO+48, BG_LOGO+49, BG_LOGO+50, BG_LOGO+51, BG_LOGO+52, BG_LOGO+53, BG_LOGO+54
+  .byte BG_LOGO+55, BG_LOGO+56, BG_LOGO+8, BG_LOGO+9, BG_LOGO+16, BG_LOGO+16, BG_LOGO+22, BG_LOGO+9
+  .byte BG_LOGO+8, BG_LOGO+18, BG_LOGO+22, BG_LOGO+9
+  .byte $20, $ba, $c0+9
+  .byte BG_LOGO+4
+  .byte $20, $c6, $40+10
+  .byte BG_COLOR_2
+  .byte $20, $d0, 10
+  .byte BG_LOGO+10, BG_LOGO+11, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+20
+  .byte BG_LOGO+19, BG_LOGO+23
+  .byte $20, $e6, $40+10
+  .byte BG_COLOR_2
+  .byte $20, $f0, 10
+  .byte BG_LOGO+12, BG_LOGO+13, BG_LOGO+12, BG_LOGO+17, BG_LOGO+19, BG_LOGO+26, BG_LOGO+12, BG_LOGO+18
+  .byte BG_LOGO+19, BG_LOGO+24
+  .byte $21, $06, $40+10
+  .byte BG_COLOR_2
+  .byte $21, $10, 10
+  .byte BG_LOGO+14, BG_LOGO+15, BG_LOGO+14, BG_LOGO+15, BG_LOGO+25, BG_COLOR_2, BG_LOGO+14, BG_LOGO+21
+  .byte BG_LOGO+25, BG_LOGO+25
+  .byte $21, $26, 20
+  .byte BG_LOGO+8, BG_LOGO+32, BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+16
+  .byte BG_LOGO+8, BG_LOGO+9, BG_COLOR_2, BG_LOGO+22, BG_LOGO+9, BG_LOGO+22, BG_LOGO+9, BG_LOGO+8
+  .byte BG_LOGO+9, BG_LOGO+8, BG_LOGO+9, BG_COLOR_2
+  .byte $21, $46, 20
+  .byte BG_LOGO+19, BG_LOGO+28, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+  .byte BG_LOGO+19, BG_LOGO+28, BG_COLOR_2, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19
+  .byte BG_LOGO+28, BG_LOGO+19, BG_LOGO+28, BG_COLOR_2
+  .byte $21, $66, $40+6
+  .byte BG_LOGO+19
+  .byte $21, $6c, 14
+  .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+23, BG_LOGO+19
+  .byte BG_LOGO+23, BG_LOGO+19, BG_LOGO+19, BG_LOGO+10, BG_LOGO+29, BG_COLOR_2
+  .byte $21, $86, 20
+  .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+22, BG_LOGO+31, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+  .byte BG_LOGO+19, BG_LOGO+19, BG_COLOR_2, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19, BG_LOGO+24, BG_LOGO+19
+  .byte BG_LOGO+19, BG_LOGO+30, BG_LOGO+27, BG_COLOR_2
+  .byte $21, $a6, 20
+  .byte BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19, BG_LOGO+28, BG_LOGO+19, BG_LOGO+19, BG_LOGO+19
+  .byte BG_LOGO+12, BG_LOGO+17, BG_COLOR_2, BG_LOGO+19, BG_LOGO+17, BG_LOGO+19, BG_LOGO+19, BG_LOGO+12
+  .byte BG_LOGO+17, BG_LOGO+12, BG_LOGO+17, BG_LOGO+16
+  .byte $21, $c5, 1
+  .byte BG_LOGO+5
+  .byte $21, $c6, $40+8
+  .byte BG_LOGO+33
+  .byte $21, $ce, 12
+  .byte BG_LOGO+35, BG_LOGO+36, BG_LOGO+6, BG_LOGO+33, BG_LOGO+34, BG_LOGO+33, BG_LOGO+33, BG_LOGO+35
+  .byte BG_LOGO+36, BG_LOGO+35, BG_LOGO+36, BG_LOGO+33
+  .byte $21, $da, 1
+  .byte BG_LOGO+7
+  .byte $21, $ed, 14
+
+  ;copyright string
+  .byte "c1986 NINTENDO"
+
+  ;options and top score
+  .byte $22, $4d, 10
+  .byte "MARIO GAME"
+  .byte $22, $8d, 10
+  .byte "LUIGI GAME"
+  .byte $22, $eb, 4
+  .byte "TOP-"
+  .byte $22, $f5, 1
+  .byte "0"
+
+  ;attribute data
+  .byte $23, $c9, $40+6
+  .byte %01010101
+  .byte $23, $d1, $40+6
+  .byte %01010101
+  .byte $23, $d9, $40+6
+  .byte %01010101
+  .byte $23, $e2, 4
+  .byte %01000000, %10100000, %10100000, %10100000
+  .byte $23, $ea, 4
+  .byte %10000100, %10101010, %10101010, %00101010
+
+  ;terminator
+  .byte $00
+
+;--------------------------------
+
+MarioThankYouMsg:
+  .byte $25, $48, 16
+  .byte "THANK YOU MARIO!"
+  .byte $00
+
+LuigiThankYouMsg:
+  .byte $25, $48, 16
+  .byte "THANK YOU LUIGI!"
+  .byte $00
+
+MarioThankYouMsgEnd:
+  .byte $25, $28, 15
+  .byte "THANK YOU MARIO"
+  .byte $00
+
+LuigiThankYouMsgEnd:
+  .byte $25, $28, 15
+  .byte "THANK YOU LUIGI"
+  .byte $00
+  
+MushroomRetainerMsg:
+  .byte $25, $c5, 22
+  .byte "BUT OUR PRINCESS IS IN"
+  .byte $26, $05, 15
+  .byte "ANOTHER CASTLE!"
+  .byte $00
+
+TheKingdomIsSavedMsg:
+  .byte $25, $c6, 21
+  .byte "THE KINGDOM IS SAVED!"
+  .byte $00
+
+NowTryAMoreDifficultQuestMsg:
+  .byte $26, $06, 14
+  .byte "NOW TRY A MORE"
+  .byte $26, $46, 18
+  .byte "DIFFICULT QUEST..."
+  .byte $00
+
+FinalRoomPalette:
+  .byte $3f, $00, $10
+  .byte $0f, $0f, $0f, $0f, $0f, $30, $10, $00
+  .byte $0f, $21, $12, $02, $0f, $27, $17, $00
+
+  .byte $23, $c0, $48, $55
+  .byte $23, $c2, $01, $d5
+  .byte $27, $d0, $58, $aa
+  .byte $00
+
+MarioThankYouMsgFinal:
+  .byte $24, $e8, 16
+  .byte "THANK YOU MARIO!"
+
+  .byte $27, $c8, $48, $05
+  .byte $00
+
+LuigiThankYouMsgFinal:
+  .byte $24, $e8, 16
+  .byte "THANK YOU LUIGI!"
+
+  .byte $27, $c8, $48, $05
+  .byte $00
+
+ForRestoringPeace:
+  .byte $25, $86, 19
+  .byte "FOR RESTORING PEACE"
+  .byte $00
+
+ToOurKingdom:
+  .byte $25, $c6, 15
+  .byte "TO OUR KINGDOM."
+  .byte $00
+	
+HurrahToOurHeroMsg:
+  .byte $26, $06, 19
+  .byte "HURRAH TO OUR HERO,"
+  .byte $00
+
+MarioHurrahMsg:
+  .byte $26, $46, 6
+  .byte "MARIO!"
+  .byte $00
+
+LuigiHurrahMsg:
+  .byte $26, $46, 6
+  .byte "LUIGI!"
+  .byte $00
+
+PointsAddedMsg:
+  .byte $26, $88, 17
+  .byte "100000 PTS. ADDED"
+
+  .byte $27, $e8, $48, $ff
+  .byte $00
+
+ForEachPlayerLeftMsg:
+  .byte $26, $a6, 21
+  .byte "FOR EACH PLAYER LEFT."
+  .byte $00
+
+ThanksForPlayingMsg:
+  ;clears "CONTINUE", "SAVE", and "RETRY" text
+  .byte $21, $e0, $60, BG_BLANK
+  .byte $22, $40, $60, BG_BLANK
+  .byte $22, $a0, $60, BG_BLANK
+
+  ;"THANKS FOR PLAYING"
+  .byte $21, $e5, 21
+  .byte "THANK YOU FOR PLAYING"
+
+  ;"OUR FIRST DEMO!"
+  .byte $22, $25, 15
+  .byte "OUR FIRST DEMO!"
+
+  ;"DEVELOPED BY:"
+  .byte $22, $85, 21
+  .byte "DEVELOPED BY ALEXYWEB"
+
+  ;"-SIMPLISTIC6502"
+  .byte $22, $c5, 18
+  .byte "AND SIMPLISTIC6502"
+
+  .byte $00
+
 ;------------------------------------------------------------------------------------
 ; INTERRUPT HANDLERS
 
@@ -16455,17 +16776,17 @@ NMIRoutine:
       lda IRQUpdateFlag         ;skip this code if IRQs are disabled
       beq SkipIRQ
       lda #FME7_IRQTimer_Low
-      sta FME7Command
+      sta FME7_COMMAND
       lda IRQTimer_Low
-      sta FME7Parameter         ;set IRQ to occur at the end of the status bar
+      sta FME7_PARAMETER        ;set IRQ to occur at the end of the status bar
       lda #FME7_IRQTimer_High
-      sta FME7Command
+      sta FME7_COMMAND
       lda IRQTimer_High
-      sta FME7Parameter
+      sta FME7_PARAMETER
       lda #FME7_IRQTimer_Ctrl
-      sta FME7Command
+      sta FME7_COMMAND
       lda #$81
-      sta FME7Parameter         ;enable it
+      sta FME7_PARAMETER         ;enable it
       inc IRQAckFlag            ;reset flag to wait for next IRQ
 SkipIRQ:
       lda NMIFlags              ;disable NMI for now to prevent reentrant NMI
@@ -16528,6 +16849,13 @@ RestorePPURegs:
       sta NameTableSelect
       lda ScreenEdge_X_Pos
       sta HorizontalScroll
+      ldx #$07                  ;update CHR banks
+@update_chr:
+      stx FME7_COMMAND
+      lda Mirror_CHRBanks,x
+      sta FME7_PARAMETER
+      dex
+      bpl @update_chr
       jsr ReadJoypads           ;read controllers
       pla                       ;restore zero page RAM
       sta $01
@@ -16570,26 +16898,26 @@ WaitForVBLANK:
       txs                         ;reset stack pointer
 
       ; Init FME7
-      lda #$08                    ;enable PRG-RAM
-      sta FME7Command
+      lda #FME7_PRGBank_0         ;enable PRG-RAM
+      sta FME7_COMMAND
       lda #%11000000
-      sta FME7Parameter
-      lda #$0b                    ;set up $C000-$DFFF bank (16K + 16K fixed arrangement)
-      sta FME7Command
+      sta FME7_PARAMETER
+      lda #FME7_PRGBank_3         ;set up $C000-$DFFF bank (16K + 16K fixed arrangement)
+      sta FME7_COMMAND
       lda #FixedBank-1
-      sta FME7Parameter
-      lda #$0c                    ;set horizontal nametable arrangement
-      sta FME7Command
+      sta FME7_PARAMETER
+      lda #FME7_Nametables        ;set horizontal nametable arrangement
+      sta FME7_COMMAND
       lda #$00
-      sta FME7Parameter
+      sta FME7_PARAMETER
       lda #FME7_IRQTimer_Ctrl     ;disable FME7 IRQ counter
-      sta FME7Command
+      sta FME7_COMMAND
       lda #$00
-      sta FME7Parameter
+      sta FME7_PARAMETER
       ldx #$07                    ;set up CHR bank registers
 CHRBankLoop:
-      stx FME7Command
-      stx FME7Parameter
+      stx FME7_COMMAND
+      stx FME7_PARAMETER
       dex
       bpl CHRBankLoop
       lda #LoaderBank             ;switch to loader bank
@@ -16605,9 +16933,9 @@ IRQHandler:
 AcknowledgeIRQ:
       pha
       lda #FME7_IRQTimer_Ctrl
-      sta FME7Command
+      sta FME7_COMMAND
       lda #$00
-      sta FME7Parameter
+      sta FME7_PARAMETER
       pla
       rti
 
@@ -16621,9 +16949,9 @@ IRQHandler_SplitX:
       sta PPU_CTRL
       lda PPU_STATUS           ;reset flip-flop
       lda #FME7_IRQTimer_Ctrl  ;disable IRQ timer for the rest of the frame
-      sta FME7Command
+      sta FME7_COMMAND
       lda #$00
-      sta FME7Parameter
+      sta FME7_PARAMETER
       sta IRQAckFlag           ;indicate IRQ was acknowledged
       pla                      ;restore accumulator, then leave
       rti
@@ -16638,9 +16966,9 @@ IRQHandler_SplitXY:
       lda #%10000000
       sta PPU_ADDRESS
       lda #FME7_IRQTimer_Ctrl  ;disable IRQ timer for the rest of the frame
-      sta FME7Command
+      sta FME7_COMMAND
       lda #$00
-      sta FME7Parameter
+      sta FME7_PARAMETER
       sta IRQAckFlag           ;indicate IRQ was acknowledged
       pla                      ;restore accumulator and Y, then leave
       tay

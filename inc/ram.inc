@@ -1,33 +1,3 @@
-
-;-------------------------------------------------------------------------------------
-;DEFINES
-
-;NES specific hardware defines
-
-PPU_CTRL              = $2000
-PPU_MASK              = $2001
-PPU_STATUS            = $2002
-PPU_SPR_ADDR          = $2003
-PPU_SPR_DATA          = $2004
-PPU_SCROLL            = $2005
-PPU_ADDRESS           = $2006
-PPU_DATA              = $2007
-
-SND_REGISTER          = $4000
-SND_SQUARE1_REG       = $4000
-SND_SQUARE2_REG       = $4004
-SND_TRIANGLE_REG      = $4008
-SND_NOISE_REG         = $400c
-SND_DELTA_REG         = $4010
-SND_MASTERCTRL_REG    = $4015
-
-SPR_DMA               = $4014
-JOYPAD_PORT           = $4016
-JOYPAD_PORT1          = $4016
-JOYPAD_PORT2          = $4017
-
-; GAME SPECIFIC DEFINES
-
 .segment "MAIN_ZP" : zeropage
     .res 8 ; $00-$07
 
@@ -287,8 +257,33 @@ FloateyNum_Timer:
 DigitModifier:
     .res 6 ; $0134-$0139
 
-    .res 38 ; $013a-$015f (unused)
-    .res 160 ; $0160-$01ff (stack)
+WaterAnimCurrentBank:
+    .res 1 ; $013a
+
+    .res 37 ; $013b-$015f (unused)
+
+Mirror_CHRBanks:
+Mirror_CHRBank_0:
+    .res 1 ; $0160
+Mirror_CHRBank_1:
+    .res 1 ; $0161
+Mirror_CHRBank_2:
+    .res 1 ; $0162
+Mirror_CHRBank_3:
+    .res 1 ; $0163
+Mirror_CHRBank_4:
+    .res 1 ; $0164
+Mirror_CHRBank_5:
+    .res 1 ; $0165
+Mirror_CHRBank_6:
+    .res 1 ; $0166
+Mirror_CHRBank_7:
+    .res 1 ; $0167
+
+MemClr_Low:
+    .res 1 ; $0168
+
+    .res 151 ; $0169-$01ff (stack)
 
 Sprite_Data:
     .res 256 ; $0200-$02ff (shadow OAM)
@@ -343,6 +338,7 @@ BalPlatformAlignment:
 Platform_X_Scroll:
     .res 1 ; $03a1
 PlatformCollisionFlag:
+HammerThrowingTimer:
     .res 5 ; $03a2-$03a6
 
     .res 6 ; $03a7-$03ac (unused)
@@ -435,6 +431,8 @@ AttributeBuffer:
 SprObject_X_MoveForce:
     .res 1 ; $0400
 Enemy_X_MoveForce:
+YPlatformTopYPos:
+RedPTroopaOrigXPos:
     .res 6 ; $0401-$0406
     .res 2 ; $0407-$0408 (fireballs)
     .res 2 ; $0409-$040a (blocks)
@@ -445,6 +443,8 @@ SprObject_YMF_Dummy:
 Player_YMF_Dummy:
     .res 1 ; $0416
 Enemy_YMF_Dummy:
+BowserFlamePRandomOfs:
+PiranhaPlantUpYPos:
     .res 6 ; $0417-$041c
     .res 2 ; $041d-$041e (fireballs)
     .res 2 ; $041f-$0420 (blocks)
@@ -459,6 +459,8 @@ SprObject_Y_MoveForce:
 Player_Y_MoveForce:
     .res 1 ; $0433
 Enemy_Y_MoveForce:
+CheepCheepOrigYPos:
+PiranhaPlantDownYPos:
     .res 6 ; $0434-$0439
     .res 2 ; $043a-$043b (fireballs)
 Block_Y_MoveForce:
@@ -540,10 +542,118 @@ Block_Buffer_1:
     .res 208 ; $0500-$05cf
 Block_Buffer_2:
     .res 208 ; $05d0-$069f
+BlockBufferColumnPos:
+    .res 1 ; $06a0
+MetatileBuffer:
+    .res 13 ; $06a1-$06ad
 
-SavedJoypadBits       = $06fc
-SavedJoypad1Bits      = $06fc
-SavedJoypad2Bits      = $06fd
+HammerEnemyOffset:
+    .res 9 ; $06ae-$06b6
+JumpCoinMiscOffset:
+    .res 1 ; $06b7
+
+    .res 4 ; $06b8-$06bb (unused)
+
+BrickCoinTimerFlag:
+    .res 1 ; $06bc
+
+    .res 1 ; $06bd (unused)
+
+Misc_Collision_Flag:
+    .res 9 ; $06be-$06c6
+
+    .res 4 ; $06c7-$06ca (unused)
+
+EnemyFrenzyBuffer:
+    .res 1 ; $06cb
+
+SecondaryHardMode:
+    .res 1 ; $06cc
+
+EnemyFrenzyQueue:
+    .res 1 ; $06cd
+
+FireballCounter:
+    .res 1 ; $06ce
+
+DuplicateObj_Offset:
+    .res 1 ; $06cf
+
+    .res 1 ; $06d0 (unused)
+
+LakituReappearTimer:
+    .res 1 ; $06d1
+
+    .res 1 ; $06d2 (unused)
+
+NumberofGroupEnemies:
+    .res 1 ; $06d3
+
+ColorRotateOffset:
+    .res 1 ; $06d4
+
+PlayerGfxOffset:
+    .res 1 ; $06d5
+
+WarpZoneControl:
+    .res 1 ; $06d6
+
+FireworksCounter:
+    .res 1 ; $06d7
+
+PlayerDamageFlag:
+    .res 1 ; $06d8
+
+MultiLoopFailureFlag:
+    .res 1 ; $06d9
+MultiLoopPassCntr:
+    .res 1 ; $06da
+
+JumpspringForce:
+    .res 1 ; $06db
+
+MaxRangeFromOrigin:
+    .res 1 ; $06dc
+
+BitMFilter:
+    .res 1 ; $06dd
+
+ChangeAreaTimer:
+    .res 1 ; $06de
+
+    .res 1 ; $06df (unused)
+
+SprShuffleAmtOffset:
+    .res 1 ; $06e0
+SprShuffleAmt:
+    .res 3 ; $06e1-$06e3
+SprDataOffset:
+Player_SprDataOffset:
+    .res 1; $06e4
+Enemy_SprDataOffset:
+    .res 6 ; $06e5-$06ea
+    .res 1 ; $06eb (not used directly)
+Block_SprDataOffset:
+Alt_SprDataOffset:
+    .res 2 ; $06ec-$06ed
+Bubble_SprDataOffset:
+    .res 3 ; $06ee-$06f0
+FBall_SprDataOffset:
+    .res 2 ; $06f1-$06f2
+Misc_SprDataOffset:
+    .res 9 ; $06f3-$06fb
+
+SavedJoypadBits:
+SavedJoypad1Bits:
+    .res 1; $06fc
+SavedJoypad2Bits:
+    .res 1 ; $06fd
+
+    .res 1 ; $06fe (unused)
+
+Player_X_Scroll:
+    .res 1 ; $06ff
+
 RawJoypadBits         = $074a
 RawJoypad1Bits        = $074a
 RawJoypad2Bits        = $074b
@@ -624,7 +734,6 @@ HorizontalScroll      = $073f
 VerticalScroll        = $0740
 ScrollLock            = $0723
 ScrollThirtyTwo       = $073d
-Player_X_Scroll       = $06ff
 Player_Pos_ForScroll  = $0755
 ScrollAmount          = $0775
 
@@ -645,8 +754,6 @@ MushroomLedgeHalfLen  = $0736
 EnemyDataOffset       = $0739
 EnemyObjectPageLoc    = $073a
 EnemyObjectPageSel    = $073b
-MetatileBuffer        = $06a1
-BlockBufferColumnPos  = $06a0
 CurrentNTAddr_Low     = $0721
 CurrentNTAddr_High    = $0720
 
@@ -666,7 +773,6 @@ VRAM_Buffer_AddrCtrl  = $0773
 Sprite0HitDetectFlag  = $0722
 DisableScreenFlag     = $0774
 DisableIntermediate   = $0769
-ColorRotateOffset     = $06d4
 
 TerrainControl        = $0727
 AreaStyle             = $0733
@@ -682,17 +788,11 @@ PlayerEntranceCtrl    = $0710
 GameTimerSetting      = $0715
 AltEntranceControl    = $0752
 EntrancePage          = $0751
-WarpZoneControl       = $06d6
-ChangeAreaTimer       = $06de
-
-MultiLoopFailureFlag  = $06d9
-MultiLoopPassCntr     = $06da
 
 FetchNewGameTimerFlag = $0757
 GameTimerExpiredFlag  = $0759
 
 PrimaryHardMode       = $076a
-SecondaryHardMode     = $06cc
 WorldSelectNumber     = $076b
 CompletedWorlds       = $07fa
 HardWorldFlag         = $07fb
@@ -713,35 +813,15 @@ AreaNumber            = $0760 ;internal number used to find areas
 
 CoinTallyFor1Ups      = $0748
 
-YPlatformTopYPos      = $0401
-
-BrickCoinTimerFlag    = $06bc
 StarFlagTaskControl   = $0746
 
 PseudoRandomBitReg    = $07a7
 WarmBootValidation    = $07fe
 
-SprShuffleAmtOffset   = $06e0
-SprShuffleAmt         = $06e1
-SprDataOffset         = $06e4
-Player_SprDataOffset  = $06e4
-Enemy_SprDataOffset   = $06e5
-Block_SprDataOffset   = $06ec
-Alt_SprDataOffset     = $06ec
-Bubble_SprDataOffset  = $06ee
-FBall_SprDataOffset   = $06f1
-Misc_SprDataOffset    = $06f3
-
 JumpspringAnimCtrl    = $070e
-JumpspringForce       = $06db
 
 DisableCollisionDet   = $0716
 
-EnemyFrenzyBuffer     = $06cb
-EnemyFrenzyQueue      = $06cd
-
-PlayerGfxOffset       = $06d5
-PlayerDamageFlag      = $06d8
 Player_XSpeedAbsolute = $0700
 FrictionAdderHigh     = $0701
 FrictionAdderLow      = $0702
@@ -762,33 +842,7 @@ CrouchingFlag         = $0714
 
 WindFlag              = $07f9
 
-FireballCounter       = $06ce
 FireballThrowingTimer = $0711
-
-HammerEnemyOffset     = $06ae
-JumpCoinMiscOffset    = $06b7
-
-HammerThrowingTimer   = $03a2
-Misc_Collision_Flag   = $06be
-
-RedPTroopaOrigXPos    = $0401
-
-CheepCheepOrigYPos    = $0434
-BitMFilter            = $06dd
-
-LakituReappearTimer   = $06d1
-
-DuplicateObj_Offset   = $06cf
-NumberofGroupEnemies  = $06d3
-
-MaxRangeFromOrigin    = $06dc
-
-BowserFlamePRandomOfs = $0417
-
-PiranhaPlantUpYPos    = $0417
-PiranhaPlantDownYPos  = $0434
-
-FireworksCounter      = $06d7
 
 
 ;sound related defines
@@ -821,243 +875,7 @@ GroundMusicHeaderOfs  = $07c7
 AltRegContentFlag     = $07ca
 ContinueMusicFlag     = $07cb
 
-;-------------------------------------------------------------------------------------
-;CONSTANTS
-
-;sound effects constants
-Sfx_BigJump           = $01
-Sfx_Bump              = $02
-Sfx_EnemyStomp        = $03
-Sfx_EnemySmack        = $04
-Sfx_PipeDown_Injury   = $05
-Sfx_Fireball          = $06
-Sfx_Flagpole          = $07
-Sfx_SmallJump         = $08
-
-Sfx_CoinGrab          = $01
-Sfx_GrowPowerUp       = $02
-Sfx_GrowVine          = $03
-Sfx_Blast             = $04
-Sfx_TimerTick         = $05
-Sfx_PowerUpGrab       = $06
-Sfx_ExtraLife         = $07
-Sfx_BowserFall        = $08
-Sfx_CorrectPath       = $09
-
-Sfx_BrickShatter      = $01
-Sfx_BowserFlame       = $02
-Sfx_Wind              = $03
-Sfx_Skid              = $04
-
-;music constants
-Silence               = %10000000
-
-SettingsMusic         = %01000000
-PipeIntroMusic        = %00100000
-Star_CloudMusic       = %00010000
-CastleMusic           = %00001000
-UndergroundMusic      = %00000100
-WaterMusic            = %00000010
-GroundMusic           = %00000001
-
-TimeRunningOutMusic   = %01000000
-EndOfLevelMusic       = %00100000
-AltGameOverMusic      = %00010000
-EndOfCastleMusic      = %00001000
-VictoryMusic          = %00000100
-GameOverMusic         = %00000010
-DeathMusic            = %00000001
-
-;enemy object constants
-GreenKoopa            = $00
-BuzzyBeetle           = $02
-RedKoopa              = $03
-HammerBro             = $05
-Goomba                = $06
-Bloober               = $07
-BulletBill_FrenzyVar  = $08
-GreyCheepCheep        = $0a
-RedCheepCheep         = $0b
-Podoboo               = $0c
-PiranhaPlant          = $0d
-GreenParatroopaJump   = $0e
-RedParatroopa         = $0f
-GreenParatroopaFly    = $10
-Lakitu                = $11
-Spiny                 = $12
-FlyCheepCheepFrenzy   = $14
-FlyingCheepCheep      = $14
-BowserFlame           = $15
-Fireworks             = $16
-BBill_CCheep_Frenzy   = $17
-Stop_Frenzy           = $18
-Bowser                = $2d
-PowerUpObject         = $2e
-VineObject            = $2f
-FlagpoleFlagObject    = $30
-StarFlagObject        = $31
-JumpspringObject      = $32
-BulletBill_CannonVar  = $33
-RetainerObject        = $35
-TallEnemy             = $09
-UpsideDownPiranhaP    = $04
-
-;other constants
-World1 = 0
-World2 = 1
-World3 = 2
-World4 = 3
-World5 = 4
-World6 = 5
-World7 = 6
-World8 = 7
-World9 = 8
-WorldA = 9
-WorldB = 10
-WorldC = 11
-WorldD = 12
-Level1 = 0
-Level2 = 1
-Level3 = 2
-Level4 = 3
-
 WarmBootOffset        = <$07d6
 ColdBootOffset        = <$07fd
 SoundMemory           = $07b0
-SwimTileRepOffset     = PlayerGraphicsTable + $9e
-MusicHeaderOffsetData = MusicHeaderData - 1
-MHD                   = MusicHeaderData
-
-A_Button              = %10000000
-B_Button              = %01000000
-Select_Button         = %00100000
-Start_Button          = %00010000
-Up_Dir                = %00001000
-Down_Dir              = %00000100
-Left_Dir              = %00000010
-Right_Dir             = %00000001
-
-AttractMode           = 0
-GameMode              = 1
-VictoryMode           = 2
-GameOverMode          = 3
-
-CHRBank               = 4
-SoundBank             = 6
-LevelsBank            = 8
-LoaderBank            = 10
-MainBank              = 12
-FixedBank             = 15
-
-FME7Command           = $8000
-FME7Parameter         = $a000
-
-FME7_IRQTimer_Low	  = $0e
-FME7_IRQTimer_High	  = $0f
-FME7_IRQTimer_Ctrl	  = $0d
-
-WaterAnimCurrentBank  = $013a
 WaterAnimTimer		  = $0788
-
-PrincessGfxOffset     = $1760
-TitleScreenGfxOffset  = $0f30
-
-CHR_MENU              = 12
-CHR_SMB1              = 0
-CHR_SMB2              = 1
-
-VRAM_STANDARD         = 0
-VRAM_PAL_WATER        = 1
-VRAM_PAL_GROUND       = 2
-VRAM_PAL_UNDERGROUND  = 3
-VRAM_PAL_CASTLE       = 4
-VRAM_PAL_SNOW         = 5
-VRAM_PAL_MUSHROOM     = 6
-VRAM_PAL_BOWSER       = 7
-VRAM_NT_COMPLETE      = 8
-VRAM_NT_SMB1          = 9
-VRAM_NT_SMB2          = 10
-VRAM_NT_TOAD          = 11
-VRAM_NT_PEACH_1ST     = 14
-VRAM_NT_PEACH_2ND     = 18
-VRAM_NT_CREDITS       = 30
-
-;background tile defines
-BG_BLANK = $24
-BG_COLOR_1 = $25
-BG_COLOR_2 = $26
-BG_COLOR_3 = $27
-
-BG_MOUNTAIN = $40
-BG_CLOUD = $45
-BG_BRICK = $4d
-BG_TREE_LEDGE = $4f
-BG_GROUND_CASTLE = $56
-BG_MUSHROOM_STUMP = $58
-BG_AXE = $5a
-BG_FENCE = $5e
-BG_CASTLE = $62
-BG_GROUND = $68
-BG_TREE = $6c
-BG_BRIDGE = $72
-
-BG_FLAGPOLE = $80
-BG_PULLEY = $84
-BG_WAVE = $89
-BG_QUESTION_BLOCK = $8a
-BG_PIPE = $92
-BG_BLOCK = $ac
-BG_TREE_STEM = $b0
-BG_CANNON = $b2
-BG_COIN = $bc
-BG_MUSHROOM_LEDGE = $c4
-BG_CLOUD_LEDGE = $d0
-BG_BRIDGE_BOWSER = $da
-BG_CHAIN = $dc
-BG_GROUND_WATER = $dd
-BG_CLOUD_BLOCK = $e1
-BG_CORAL = $e5
-
-BG_LOGO = $c0
-BG_CURSOR = $ff
-
-;sprite tile defines
-
-SPR_BIG_MARIO = $00
-SPR_SMALL_MARIO = $00
-
-SPR_PRINCESS = $40
-SPR_STAR_FLAG = $45
-SPR_LIFT = $49
-SPR_GOOMBA = $4a
-SPR_MUSHROOM = $4f
-SPR_BRICK = $53
-SPR_STAR = $55
-SPR_RETAINER = $57
-SPR_PIRANHA = $5a
-SPR_BOWSER_FLAME = $5f
-SPR_COIN = $62
-SPR_FIREBALL = $66
-SPR_KOOPA = $6b
-SPR_BUBBLE = $7c
-SPR_LIFT_CLOUD = $7d
-SPR_FLAG = $7e
-SPR_HAMMER = $80
-SPR_BRICK_CHUNK = $84
-SPR_BLOCK = $85
-SPR_HAMMER_BRO = $86
-SPR_SPINY = $94
-SPR_BUZZY = $a0
-SPR_CHEEP = $aa
-SPR_LAKITU = $b0
-SPR_BOWSER = $b6
-SPR_PODOBOO = $c5
-SPR_FLOWER = $c7
-SPR_BLOOBER = $c9
-SPR_VINE = $cd
-SPR_BULLET = $cf
-SPR_SPRING = $d3
-SPR_SCORE = $d7
-SPR_1UP = $de
-
-SPR_BLANK = $ff

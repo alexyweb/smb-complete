@@ -16,7 +16,7 @@ StartLoader:
         jsr InitializeMemory
         lda #$55                    ;check for warm boot (reset) by looking for
         cmp WarmBootValidation      ;the presence of 0xaa55 reset signature
-        bne ColdBoot                ;clear all memory if not present
+        bne ColdBoot                ;skip the following if not present
         asl
         cmp WarmBootValidation+1
         bne ColdBoot
@@ -28,13 +28,27 @@ ColdBoot:
         sta WarmBootValidation
         asl
         sta WarmBootValidation+1
-
 PrepareLoader:
         jsr CheckSaveData
+
+        ; (TO-DO: improve this)
+        lda #$01                  ;set CHR banks for menu    
+        sta Mirror_CHRBank_0
         lda #$03
-        sta FME7Command
-        lda #CHR_MENU               ;load CHR tiles for menu
-        sta FME7Parameter
+        sta Mirror_CHRBank_1
+        lda #$06
+        sta Mirror_CHRBank_2
+        lda #$0a
+        sta Mirror_CHRBank_3
+        lda #$0b
+        sta Mirror_CHRBank_4
+        lda #$0e
+        sta Mirror_CHRBank_5
+        lda #$12
+        sta Mirror_CHRBank_6
+        lda #$13
+        sta Mirror_CHRBank_7
+
         inc DisableScreenFlag       ;tell NMI to keep rendering disabled
         lda #0
         sta Mirror_PPU_SCROLL1      ;set scroll before split
@@ -94,7 +108,7 @@ GameSelectTasks:
         .word DisableScreen
         .word ClearScreen
         .word Sel_SetPalette
-        .word Sel_RenderMainTilemap
+        .word Sel_DisplayGameSelect
         .word Sel_RenderTitleScreen
         .word Sel_PrepMenu
         .word Sel_RunMenu
@@ -128,10 +142,10 @@ NextTask:
         rts
 
 ClearScreen:
-        lda #$0c                        ;set horizontal nametable arrangement
-        sta FME7Command                 ;(TO-DO: Handle in NMI)
+        lda #FME7_Nametables            ;set horizontal nametable arrangement
+        sta FME7_COMMAND                ;(TO-DO: Handle in NMI)
         lda #$00
-        sta FME7Parameter
+        sta FME7_PARAMETER
         jsr MoveAllSpritesOffscreen     ; hide all sprites
         jsr InitializeNameTables        ; initialize nametables
         jmp NextTask                    ; next task
@@ -174,10 +188,10 @@ Dis_MessageData:
 Dis_MessageData_End:
 
 Dis_WriteMessage:
-      lda #$0c                        ;set vertical nametable arrangement
-      sta FME7Command                 ;(TO-DO: Handle in NMI)
+      lda #FME7_Nametables            ;set vertical nametable arrangement
+      sta FME7_COMMAND                ;(TO-DO: Handle in NMI)
       lda #$01
-      sta FME7Parameter
+      sta FME7_PARAMETER
       ldx VRAM_Buffer_Offset
       ldy #0
 @copy_message:
@@ -248,40 +262,37 @@ Sel_SetPalette:
       stx VRAM_Buffer_Offset          ; update buffer offset
       jmp NextTask                    ; next task
 
-MainMenuSelections:
-        .byte $20,$a6,20,"SUPER MARIO COMPLETE"
-        .byte $20,$c6,19,"SUPER MARIO BROS. 1"
-        .byte $20,$e6,19,"SUPER MARIO BROS. 2"
-        .byte $21,$06,7,"OPTIONS"
+Sel_OptionNameData:
+        .byte $20,$86,20,"SUPER MARIO COMPLETE"
+        .byte $20,$a6,17,"SUPER MARIO BROS."
+        .byte $20,$c6,19,"SUPER MARIO BROS. 2"
+        .byte $20,$e6,21,"VS. SUPER MARIO BROS."
+        .byte $21,$06,20,"ALL NIGHT NIPPON SMB"
+        .byte $21,$26,8,"SETTINGS"
         .byte $00
-MainMenuSelections_End:
+Sel_OptionNameData_End:
 
-Sel_RenderMainTilemap:
-        jsr MoveAllSpritesOffscreen
-        jsr InitializeNameTables
-        ldx #4 ; draw box
-        ldy #4
-        lda #22
-        sta $00
-        lda #4
-        sta $01
-        lda #0
-        sta $06
-        jsr DrawArbitraryTextbox
-        ldy #0
-        ldx VRAM_Buffer_Offset
-:       lda MainMenuSelections,y
-        sta VRAM_Buffer,x
-        inx
-        iny
-        cpy #MainMenuSelections_End-MainMenuSelections
-        bcc :-
-        dex
-        stx VRAM_Buffer_Offset
-        inc OperMode_Task
-        lda #0
-        sta IRQUpdateFlag
-        rts
+Sel_DisplayGameSelect:
+      ldx VRAM_Buffer_Offset
+      ldy #0
+@copy_message:
+      lda Sel_OptionNameData,y        ; copy game select option names
+      sta VRAM_Buffer,x               ; store in VRAM buffer
+      inx
+      iny
+      cpy #Sel_OptionNameData_End-Sel_OptionNameData
+      bcc @copy_message
+      stx VRAM_Buffer_Offset          ; update buffer offset
+      ldx #4                          ; draw border around options
+      ldy #3
+      lda #22
+      sta $00
+      lda #6
+      sta $01
+      lda #0
+      sta $06
+      jsr DrawArbitraryTextbox
+      jmp NextTask                    ; next task
 
 Sel_RenderTitleScreen:
         lda TitleScrollOffset
@@ -332,20 +343,17 @@ Sel_PrepMenu:
         rts
 
 MenuCursorData:
-  .byte $04, $02
+  .byte SPR_LIFT, $02, $27
 
 MenuCursorY:
-  .byte $27, $2f, $37, $3f
-
-MenuCursorX:
-  .byte $27, $27, $27, $27
+  .byte $1f, $27, $2f, $37, $3f, $47
 
 Sel_RunMenu:
         lda #<ContinueMenuSelect
         sta $00
         lda #>ContinueMenuSelect
         sta $01
-        lda #$03
+        lda #6
         jsr MenuSelectionLogic
         bcs CheckForSelection
         cpx #$00
@@ -366,7 +374,7 @@ UpdateMenuSelection:
         jsr WriteAttributeData
         inc OperMode_Task
 DrawMainMenuCursor:
-        ldy #$01
+        ldy #$02
 :       lda MenuCursorData,y     ;set up cursor sprite tile, attribute
         sta Sprite_Data+1,y      ;and X position in sprite OAM data
         dey
@@ -374,8 +382,6 @@ DrawMainMenuCursor:
         ldy ContinueMenuSelect
         lda MenuCursorY,y        ;set Y position based on the selection
         sta Sprite_Data
-        lda MenuCursorX,y        ;set X position based on the selection
-        sta Sprite_Data+3
         rts
 
 CheckForSelection:
@@ -387,8 +393,8 @@ DoSelection:
         inc DisableScreenFlag
         dec IRQUpdateFlag
         lda ContinueMenuSelect
-        cmp #$03
-        bne :+
+        cmp #$05
+        bcc :+
         lda #2
         sta OperMode
         lda #0
@@ -521,94 +527,96 @@ GameTitlePointers:
         .word SMBCompleteTitle
         .word SMB1Title
         .word SMB2Title
+        .word SMB1Title
+        .word SMB1Title
         .word OptionsGraphic
 
 SMBCompleteTitle:
         ;.byte 5, $23, $d8, $40+32, $55
-        .byte $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24
-        .byte $cf, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d4, $24
-        .byte $d0, $de, $e0, $e2, $e4, $de, $e9, $e9, $e9, $e9, $ef, $de, $e9, $e2, $d9, $24
-        .byte $d0, $df, $e1, $e3, $e5, $f6, $f2, $e9, $e9, $e9, $ef, $e8, $eb, $e8, $db, $24
-        .byte $d0, $e6, $e9, $e2, $e4, $df, $f2, $e9, $e9, $e9, $ef, $de, $e9, $e2, $d9, $24
-        .byte $d0, $e6, $e9, $e7, $e5, $de, $e9, $e9, $ec, $e9, $ef, $df, $f2, $e7, $da, $24
-        .byte $d0, $ec, $e9, $e9, $ef, $df, $f2, $e9, $f5, $f2, $ef, $de, $e9, $e9, $d7, $24
-        .byte $d0, $df, $e7, $f0, $5d, $ec, $e9, $e9, $e9, $e9, $ef, $f6, $f2, $e9, $d7, $24
-        .byte $d0, $de, $e9, $e2, $e4, $df, $f2, $ed, $ee, $e9, $ef, $df, $f2, $e9, $d7, $24
-        .byte $d0, $e8, $ea, $e8, $eb, $e6, $e9, $e9, $e9, $e9, $ef, $ec, $e9, $e9, $d7, $24
-        .byte $d0, $ec, $e9, $e9, $ef, $de, $e9, $e9, $e9, $e2, $e4, $df, $e7, $f0, $d5, $24
-        .byte $d0, $df, $ed, $ee, $ef, $df, $f2, $e9, $e9, $e7, $e5, $e6, $e9, $e2, $d9, $24
-        .byte $d0, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $e8, $db, $24
-        .byte $d0, $5d, $5d, $5d, $5d, $ec, $e9, $e9, $e9, $e9, $ef, $de, $e9, $e2, $d9, $24
-        .byte $d0, $5d, $5d, $5d, $5d, $df, $f2, $ed, $ee, $e7, $f0, $e8, $ea, $e8, $db, $24
-        .byte $d0, $5d, $5d, $5d, $5d, $ec, $e9, $e9, $e9, $e9, $ef, $ec, $fb, $fd, $dc, $24
-        .byte $d0, $5d, $5d, $5d, $5d, $df, $f2, $ed, $ee, $e9, $ef, $e8, $fc, $fe, $dd, $24
-        .byte $d0, $5d, $5d, $5d, $5d, $de, $e9, $e9, $e9, $e2, $e4, $de, $e9, $e2, $d9, $24
-        .byte $d0, $5d, $5d, $5d, $5d, $df, $f2, $e9, $e9, $e7, $e5, $e8, $ea, $e8, $db, $24
-        .byte $d0, $5d, $5d, $5d, $5d, $de, $e9, $e0, $f4, $e2, $e4, $5d, $5d, $5d, $d5, $24
-        .byte $d0, $5d, $5d, $5d, $5d, $df, $f2, $f3, $f1, $e7, $e5, $5d, $5d, $5d, $d5, $24
-        .byte $d0, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $e6, $ef, $5d, $5d, $5d, $d5, $24
-        .byte $d1, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d6, $24
-        .byte $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24
-        .byte $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24
+        .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte $cf, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d4, BG_BLANK
+        .byte $d0, $de, $e0, $e2, $e4, $de, $e9, $e9, $e9, $e9, $ef, $de, $e9, $e2, $d9, BG_BLANK
+        .byte $d0, $df, $e1, $e3, $e5, $f6, $f2, $e9, $e9, $e9, $ef, $e8, $eb, $e8, $db, BG_BLANK
+        .byte $d0, $e6, $e9, $e2, $e4, $df, $f2, $e9, $e9, $e9, $ef, $de, $e9, $e2, $d9, BG_BLANK
+        .byte $d0, $e6, $e9, $e7, $e5, $de, $e9, $e9, $ec, $e9, $ef, $df, $f2, $e7, $da, BG_BLANK
+        .byte $d0, $ec, $e9, $e9, $ef, $df, $f2, $e9, $f5, $f2, $ef, $de, $e9, $e9, $d7, BG_BLANK
+        .byte $d0, $df, $e7, $f0, $5d, $ec, $e9, $e9, $e9, $e9, $ef, $f6, $f2, $e9, $d7, BG_BLANK
+        .byte $d0, $de, $e9, $e2, $e4, $df, $f2, $ed, $ee, $e9, $ef, $df, $f2, $e9, $d7, BG_BLANK
+        .byte $d0, $e8, $ea, $e8, $eb, $e6, $e9, $e9, $e9, $e9, $ef, $ec, $e9, $e9, $d7, BG_BLANK
+        .byte $d0, $ec, $e9, $e9, $ef, $de, $e9, $e9, $e9, $e2, $e4, $df, $e7, $f0, $d5, BG_BLANK
+        .byte $d0, $df, $ed, $ee, $ef, $df, $f2, $e9, $e9, $e7, $e5, $e6, $e9, $e2, $d9, BG_BLANK
+        .byte $d0, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $e8, $db, BG_BLANK
+        .byte $d0, $5d, $5d, $5d, $5d, $ec, $e9, $e9, $e9, $e9, $ef, $de, $e9, $e2, $d9, BG_BLANK
+        .byte $d0, $5d, $5d, $5d, $5d, $df, $f2, $ed, $ee, $e7, $f0, $e8, $ea, $e8, $db, BG_BLANK
+        .byte $d0, $5d, $5d, $5d, $5d, $ec, $e9, $e9, $e9, $e9, $ef, $ec, $fb, $fd, $dc, BG_BLANK
+        .byte $d0, $5d, $5d, $5d, $5d, $df, $f2, $ed, $ee, $e9, $ef, $e8, $fc, $fe, $dd, BG_BLANK
+        .byte $d0, $5d, $5d, $5d, $5d, $de, $e9, $e9, $e9, $e2, $e4, $de, $e9, $e2, $d9, BG_BLANK
+        .byte $d0, $5d, $5d, $5d, $5d, $df, $f2, $e9, $e9, $e7, $e5, $e8, $ea, $e8, $db, BG_BLANK
+        .byte $d0, $5d, $5d, $5d, $5d, $de, $e9, $e0, $f4, $e2, $e4, $5d, $5d, $5d, $d5, BG_BLANK
+        .byte $d0, $5d, $5d, $5d, $5d, $df, $f2, $f3, $f1, $e7, $e5, $5d, $5d, $5d, $d5, BG_BLANK
+        .byte $d0, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $e6, $ef, $5d, $5d, $5d, $d5, BG_BLANK
+        .byte $d1, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d6, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
 
 SMB1Title:
         ;.byte 5, $23, $d8, $40+32, $55
-        .byte $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24
-        .byte $24, $24, $cf, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d4, $24, $24, $24
-        .byte $24, $24, $d0, $de, $e0, $e2, $e4, $de, $e9, $e9, $e9, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $df, $e1, $e3, $e5, $f6, $f2, $e9, $e9, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $e6, $e9, $e2, $e4, $df, $f2, $e9, $e9, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $e6, $e9, $e7, $e5, $de, $e9, $e9, $ec, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $ec, $e9, $e9, $ef, $df, $f2, $e9, $f5, $f2, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $df, $e7, $f0, $5d, $ec, $e9, $e9, $e9, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $de, $e9, $e2, $e4, $df, $f2, $ed, $ee, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $e8, $ea, $e8, $eb, $e6, $e9, $e9, $e9, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $ec, $e9, $e9, $ef, $de, $e9, $e9, $e9, $e2, $d9, $24, $24, $24
-        .byte $24, $24, $d0, $df, $ed, $ee, $ef, $df, $f2, $e9, $e9, $e7, $da, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $d5, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $ec, $e9, $e9, $e9, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $df, $f2, $ed, $ee, $e7, $d8, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $ec, $e9, $e9, $e9, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $df, $f2, $ed, $ee, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $de, $e9, $e9, $e9, $e2, $d9, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $df, $f2, $e9, $e9, $e7, $da, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $de, $e9, $e0, $f4, $e2, $d9, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $df, $f2, $f3, $f1, $e7, $da, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $e6, $d7, $24, $24, $24
-        .byte $24, $24, $d1, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d6, $24, $24, $24
-        .byte $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24
-        .byte $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24
+        .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $cf, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d4, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $de, $e0, $e2, $e4, $de, $e9, $e9, $e9, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $df, $e1, $e3, $e5, $f6, $f2, $e9, $e9, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $e6, $e9, $e2, $e4, $df, $f2, $e9, $e9, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $e6, $e9, $e7, $e5, $de, $e9, $e9, $ec, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $ec, $e9, $e9, $ef, $df, $f2, $e9, $f5, $f2, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $df, $e7, $f0, $5d, $ec, $e9, $e9, $e9, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $de, $e9, $e2, $e4, $df, $f2, $ed, $ee, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $e8, $ea, $e8, $eb, $e6, $e9, $e9, $e9, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $ec, $e9, $e9, $ef, $de, $e9, $e9, $e9, $e2, $d9, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $df, $ed, $ee, $ef, $df, $f2, $e9, $e9, $e7, $da, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $d5, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $ec, $e9, $e9, $e9, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $df, $f2, $ed, $ee, $e7, $d8, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $ec, $e9, $e9, $e9, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $df, $f2, $ed, $ee, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $de, $e9, $e9, $e9, $e2, $d9, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $df, $f2, $e9, $e9, $e7, $da, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $de, $e9, $e0, $f4, $e2, $d9, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $df, $f2, $f3, $f1, $e7, $da, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $e6, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d1, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d6, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
 
 SMB2Title:
         ;.byte 36, $23, $d8, 32, $55, $55, $55, $55, $55, $55, $55, $55, $55, $55, $55, $55, $55, $55, $d5, $55, $55, $55, $55, $55, $55, $55, $dd, $55, $55, $55, $55, $55, $55, $55, $55, $55
-        .byte $24, $24, $cf, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d4, $24, $24, $24
-        .byte $24, $24, $d0, $de, $e0, $e2, $e4, $de, $e9, $e9, $e9, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $df, $e1, $e3, $e5, $f6, $f2, $e9, $e9, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $e6, $e9, $e2, $e4, $df, $f2, $e9, $e9, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $e6, $e9, $e7, $e5, $de, $e9, $e9, $ec, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $ec, $e9, $e9, $ef, $df, $f2, $e9, $f5, $f2, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $df, $e7, $f0, $5d, $ec, $e9, $e9, $e9, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $de, $e9, $e2, $e4, $df, $f2, $ed, $ee, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $e8, $ea, $e8, $eb, $e6, $e9, $e9, $e9, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $ec, $e9, $e9, $ef, $de, $e9, $e9, $e9, $e2, $d9, $24, $24, $24
-        .byte $24, $24, $d0, $df, $ed, $ee, $ef, $df, $f2, $e9, $e9, $e7, $da, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $d5, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $ec, $e9, $e9, $e9, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $df, $f2, $ed, $ee, $e7, $d8, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $ec, $e9, $e9, $e9, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $df, $f2, $ed, $ee, $e9, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $de, $e9, $e9, $e9, $e2, $d9, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $df, $f2, $e9, $e9, $e7, $da, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $de, $e9, $e0, $f4, $e2, $d9, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $df, $f2, $f3, $f1, $e7, $da, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $e6, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $d5, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $de, $e9, $f7, $f9, $ec, $d7, $24, $24, $24
-        .byte $24, $24, $d0, $5d, $5d, $5d, $5d, $df, $f2, $f8, $fa, $e8, $db, $24, $24, $24
-        .byte $24, $24, $d1, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d6, $24, $24, $24
+        .byte BG_BLANK, BG_BLANK, $cf, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d2, $d4, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $de, $e0, $e2, $e4, $de, $e9, $e9, $e9, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $df, $e1, $e3, $e5, $f6, $f2, $e9, $e9, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $e6, $e9, $e2, $e4, $df, $f2, $e9, $e9, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $e6, $e9, $e7, $e5, $de, $e9, $e9, $ec, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $ec, $e9, $e9, $ef, $df, $f2, $e9, $f5, $f2, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $df, $e7, $f0, $5d, $ec, $e9, $e9, $e9, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $de, $e9, $e2, $e4, $df, $f2, $ed, $ee, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $e8, $ea, $e8, $eb, $e6, $e9, $e9, $e9, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $ec, $e9, $e9, $ef, $de, $e9, $e9, $e9, $e2, $d9, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $df, $ed, $ee, $ef, $df, $f2, $e9, $e9, $e7, $da, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $d5, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $ec, $e9, $e9, $e9, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $df, $f2, $ed, $ee, $e7, $d8, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $ec, $e9, $e9, $e9, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $df, $f2, $ed, $ee, $e9, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $de, $e9, $e9, $e9, $e2, $d9, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $df, $f2, $e9, $e9, $e7, $da, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $de, $e9, $e0, $f4, $e2, $d9, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $df, $f2, $f3, $f1, $e7, $da, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $e6, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $5d, $d5, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $de, $e9, $f7, $f9, $ec, $d7, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d0, $5d, $5d, $5d, $5d, $df, $f2, $f8, $fa, $e8, $db, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, $d1, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d3, $d6, BG_BLANK, BG_BLANK, BG_BLANK
 
 OptionsGraphic:
-        .byte $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24, $24
+        .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
 
 ;-------------------------------------------------------------------------------------
 ; OPTIONS MENU TASKS
@@ -639,89 +647,89 @@ Opt_SelMemoryHi = Opt_SelMemory+1
 Opt_VisibleRows = 20
 
 Opt_GfxBlank:
-        .byte $24, $24, $24, $24, $24, $24, $24, $24, $24, $24
-        .byte $24, $24, $24, $24, $24, $24, $24, $24, $24, $24
-        .byte $24, $24, $24, $24, $24, $24, $24, $24, $24, $24
+        .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
 Opt_GfxTop:
-        .byte $c9, $cb, $cb, $cb, $cb, $cb, $cb, $cb, $cb, $cb
-        .byte $cb, $cb, $cb, $cb, $cb, $cb, $cb, $cb, $cb, $cb
-        .byte $cb, $cb, $cb, $cb, $cb, $cb, $cb, $cb, $cb, $cc
+        .byte BG_BORDER, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1
+        .byte BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1
+        .byte BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+2
 Opt_GfxEmpty:
-        .byte $cd, $24, $24, $24, $24, $24, $24, $24, $24, $24
-        .byte $24, $24, $24, $24, $24, $24, $24, $24, $24, $24
-        .byte $24, $24, $24, $24, $24, $24, $24, $24, $24, $cd
+        .byte BG_BORDER+3, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BORDER+3
 Opt_GfxBottom:
-        .byte $ca, $cb, $cb, $cb, $cb, $cb, $cb, $cb, $cb, $cb
-        .byte $cb, $cb, $cb, $cb, $cb, $cb, $cb, $cb, $cb, $cb
-        .byte $cb, $cb, $cb, $cb, $cb, $cb, $cb, $cb, $cb, $ce
+        .byte BG_BORDER+4, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1
+        .byte BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1
+        .byte BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+1, BG_BORDER+5
 
 Opt_GfxDifficulty:
-        .byte $cd, $24
+        .byte BG_BORDER+3, BG_BLANK
         .byte "DIFFICULTY"
         .byte "................"
-        .byte $24, $cd
+        .byte BG_BLANK, BG_BORDER+3
 Opt_GfxMarioPalette:
-        .byte $cd, $24
+        .byte BG_BORDER+3, BG_BLANK
         .byte "MARIO PALETTE"
         .byte "............."
-        .byte $24, $cd
+        .byte BG_BLANK, BG_BORDER+3
 Opt_GfxLuigiPalette:
-        .byte $cd, $24
+        .byte BG_BORDER+3, BG_BLANK
         .byte "LUIGI PALETTE"
         .byte "............."
-        .byte $24, $cd
+        .byte BG_BLANK, BG_BORDER+3
 Opt_GfxLuigiPhysics:
-        .byte $cd, $24
+        .byte BG_BORDER+3, BG_BLANK
         .byte "LUIGI PHYSICS"
         .byte "............."
-        .byte $24, $cd
+        .byte BG_BLANK, BG_BORDER+3
 Opt_GfxSpinyEggBehavior1:
-        .byte $cd, $24
+        .byte BG_BORDER+3, BG_BLANK
         .byte "SPINY EGG"
-        .byte $24, $24, $24, $24, $24, $24, $24, $24, $24, $24
-        .byte $24, $24, $24, $24, $24, $24, $24
-        .byte $24, $cd
+        .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BORDER+3
 Opt_GfxSpinyEggBehavior2:
-        .byte $cd, $24
+        .byte BG_BORDER+3, BG_BLANK
         .byte "BEHAVIOR"
         .byte ".................."
-        .byte $24, $cd
+        .byte BG_BLANK, BG_BORDER+3
 Opt_GfxWarpZoneScroll:
-        .byte $cd, $24
+        .byte BG_BORDER+3, BG_BLANK
         .byte "WARP ZONE SCROLL"
         .byte ".........."
-        .byte $24, $cd
+        .byte BG_BLANK, BG_BORDER+3
 Opt_GfxTimerSpeed:
-        .byte $cd, $24
+        .byte BG_BORDER+3, BG_BLANK
         .byte "TIMER SPEED"
         .byte "..............."
-        .byte $24, $cd
+        .byte BG_BLANK, BG_BORDER+3
 Opt_GfxCoinBonus:
-        .byte $cd, $24
+        .byte BG_BORDER+3, BG_BLANK
         .byte "COIN BONUS."
         .byte "..............."
-        .byte $24, $cd
+        .byte BG_BLANK, BG_BORDER+3
 Opt_GfxFontSelection:
-        .byte $cd, $24
+        .byte BG_BORDER+3, BG_BLANK
         .byte "FONT SELECTION"
         .byte "............"
-        .byte $24, $cd
+        .byte BG_BLANK, BG_BORDER+3
 Opt_GfxTilesetSelection1:
-        .byte $cd, $24
+        .byte BG_BORDER+3, BG_BLANK
         .byte "TILESET"
-        .byte $24, $24, $24, $24, $24, $24, $24, $24, $24, $24
-        .byte $24, $24, $24, $24, $24, $24, $24, $24, $24
-        .byte $24, $cd
+        .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK, BG_BLANK
+        .byte BG_BLANK, BG_BORDER+3
 Opt_GfxTilesetSelection2:
-        .byte $cd, $24
+        .byte BG_BORDER+3, BG_BLANK
         .byte "SELECTION"
         .byte "................."
-        .byte $24, $cd
+        .byte BG_BLANK, BG_BORDER+3
 Opt_GfxAnimatedTiles:
-        .byte $cd, $24
+        .byte BG_BORDER+3, BG_BLANK
         .byte "ANIMATED TILES"
         .byte "............"
-        .byte $24, $cd
+        .byte BG_BLANK, BG_BORDER+3
 
 Opt_GfxTable:
         .word Opt_GfxBlank              ; 0
@@ -1108,16 +1116,19 @@ Opt_SelTilesetSelection:
         .word TilesetSelection          ; memory addr
         .byte 24                        ; text row
         .byte 8                         ; text length
-        .byte 3                         ; option count
+        .byte 4                         ; option count
         .word Opt_TxtTilesetSelection0  ; text addr #0
         .word Opt_TxtTilesetSelection1  ; text addr #1
         .word Opt_TxtTilesetSelection2  ; text addr #2
+        .word Opt_TxtTilesetSelection3  ; text addr #3
 Opt_TxtTilesetSelection0:
         .byte "PER GAME"
 Opt_TxtTilesetSelection1:
         .byte ".MARIO 1"
 Opt_TxtTilesetSelection2:
         .byte ".MARIO 2"
+Opt_TxtTilesetSelection3:
+        .byte "..NIPPON"
 
 Opt_SelAnimatedTiles:
         .byte 26                        ; cursor row
@@ -1143,7 +1154,7 @@ Opt_MoveCursor:
         sta $00
         lda #>Opt_SelIndex
         sta $01
-        lda #(Opt_SelTableEnd-Opt_SelTable-1)/2
+        lda #(Opt_SelTableEnd-Opt_SelTable)/2
         jsr MenuSelectionLogic
         
         ; cursor rendering
@@ -1165,7 +1176,7 @@ Opt_MoveCursor:
         sec
         sbc #1
         sta Sprite_Data
-        lda #$04                ; set other cursor data
+        lda #SPR_LIFT           ; set other cursor data
         sta Sprite_Data+1
         lda #$02
         sta Sprite_Data+2
@@ -1340,14 +1351,22 @@ MultByPow2:
     rts
 
 BaseTextbox:
-        .byte $20,$00,$01,$c9 ; top left corner
-        .byte $20,$01,$40,$cb ; top border
-        .byte $20,$01,$01,$cc ; top right corner
-        .byte $20,$20,$c0,$cd ; left border
-        .byte $20,$21,$c0,$cd ; right border
-        .byte $20,$20,$01,$ca ; bottom left corner
-        .byte $20,$21,$40,$cb ; bottom border
-        .byte $20,$21,$01,$ce ; bottom right corner
+; top left corner
+        .byte $20,$00,$01,BG_BORDER
+; top border
+        .byte $20,$01,$40,BG_BORDER+1
+; top right corner
+        .byte $20,$01,$01,BG_BORDER+2
+; left border
+        .byte $20,$20,$c0,BG_BORDER+3
+; right border
+        .byte $20,$21,$c0,BG_BORDER+3
+; bottom left corner
+        .byte $20,$20,$01,BG_BORDER+4
+; bottom border
+        .byte $20,$21,$40,BG_BORDER+1
+; bottom right corner
+        .byte $20,$21,$01,BG_BORDER+5
 
 NametableAddrHi:
         .byte $20
@@ -1475,12 +1494,12 @@ DrawArbitraryTextbox:
 Sel_LoadIntoGame:
         lda ContinueMenuSelect
         sta CurrentGame
-        jsr LoadFontTileset
         jsr CopyFrictionData
         jsr CopyTotalCoinBonus
         jsr CopyPaletteData
         jsr CopyDemoData
         jsr CopyTopScoreDisplay
+        jsr CopyGameParameters
         jsr famistudio_music_stop
         jsr famistudio_update
         jmp BootIntoGame
@@ -1600,10 +1619,10 @@ CopyFireLuigiPalette:
         rts
 
 CopyTotalCoinBonus:
-		ldx CoinBonusSetting
-		lda CoinBonusAmount,x
-		sta CoinBonusTotal
-		rts
+	ldx CoinBonusSetting         ;set coins required for extra life
+	lda CoinBonusAmount,x
+	sta CoinBonusTotal
+	rts
 
 CoinBonusAmount:
       .byte 100, 150, 200, 250
@@ -1687,6 +1706,43 @@ HardPreset:
       .byte $02, $00, $00, $00, $00, $00, $01, $02, $00, $00, $01
 ExpertPreset:
       .byte $02, $00, $00, $00, $01, $01, $02, $03, $00, $00, $01
+
+;-------------------------------------------------------------------------------------
+
+CopyGameParameters:
+        ; copy status bar nametable offsets and lengths
+        ldy #11
+@CopyStatusBarData:
+        lda StatusBarData,y
+        sta WRAM_StatusBarData,y
+        dey
+        bpl @CopyStatusBarData
+        ; move top score display down for complete mode
+        lda CurrentGame
+        cmp #GAME_COMPLETE
+        bne @SetCoinTallyLength
+        lda #$23
+        sta WRAM_StatusBarData
+        lda #$0f
+        sta WRAM_StatusBarData+1
+@SetCoinTallyLength:
+        ; if more than 100 coins needed for extra life,
+        ; make coin tally display three digits
+        lda CoinBonusTotal
+        cmp #101
+        bcc @Done
+        lda #$03
+        sta WRAM_StatusBarData+8
+@Done:
+        rts
+
+StatusBarData:
+      .byte $22, $ef, $06 ; top score display on title screen
+      .byte $20, $62, $06 ; player score
+      .byte $20, $6d, $02 ; coin tally
+      .byte $20, $7a, $03 ; game timer
+
+;-------------------------------------------------------------------------------------
 
 .include "famistudio_ca65.s"
 .include "music/menu.s"

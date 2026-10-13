@@ -2,13 +2,17 @@
 
 ; bank 00 (smb1 font)
 .incbin "chr/new/bg/font_smb1.chr"
-.repeat 16
+.incbin "chr/new/bg/crown.chr"
+.incbin "chr/new/bg/border.chr"
+.repeat 9
       .incbin "chr/new/unused.chr"
 .endrepeat
 
 ; bank 01 (smb2 font)
 .incbin "chr/new/bg/font_smb2.chr"
-.repeat 16
+.incbin "chr/new/bg/crown.chr"
+.incbin "chr/new/bg/border.chr"
+.repeat 9
       .incbin "chr/new/unused.chr"
 .endrepeat
 
@@ -153,7 +157,7 @@
 .incbin "chr/new/spr/koopa.chr"
 .incbin "chr/new/spr/bubble.chr"
 .incbin "chr/new/spr/platformcloud.chr"
-.incbin "chr/new/spr/flag.chr"
+.incbin "chr/new/spr/wind.chr"
 
 ; bank 0e (smb2 spr)
 .incbin "chr/new/spr/princess_smb2.chr"
@@ -172,7 +176,7 @@
 .incbin "chr/new/spr/koopa.chr"
 .incbin "chr/new/spr/bubble.chr"
 .incbin "chr/new/spr/platformcloud.chr"
-.incbin "chr/new/spr/flag.chr"
+.incbin "chr/new/spr/wind.chr"
 
 ; bank 0f (annsmb spr)
 .incbin "chr/new/spr/princess_annsmb.chr"
@@ -191,7 +195,7 @@
 .incbin "chr/new/spr/koopa.chr"
 .incbin "chr/new/spr/bubble.chr"
 .incbin "chr/new/spr/platformcloud.chr"
-.incbin "chr/new/spr/flag.chr"
+.incbin "chr/new/spr/wind.chr"
 
 ; bank 10 (annsmb celebrities)
 .incbin "chr/new/spr/princess_annsmb.chr"
@@ -208,6 +212,7 @@
 .endrepeat
 
 ; bank 12 (common spr #1)
+.incbin "chr/new/spr/flag.chr"
 .incbin "chr/new/spr/hammer.chr"
 .incbin "chr/new/spr/brickchunk.chr"
 .incbin "chr/new/spr/block.chr"
@@ -216,10 +221,10 @@
 .incbin "chr/new/spr/buzzy.chr"
 .incbin "chr/new/spr/cheep.chr"
 .incbin "chr/new/spr/lakitu.chr"
-.incbin "chr/new/spr/bowser.chr",$0,$a0
+.incbin "chr/new/spr/bowser.chr",$0,$80
 
 ; bank 13 (common spr #2, smb1 font)
-.incbin "chr/new/spr/bowser.chr",$a0
+.incbin "chr/new/spr/bowser.chr",$80
 .incbin "chr/new/spr/podoboo.chr"
 .incbin "chr/new/spr/flower.chr"
 .incbin "chr/new/spr/bloober.chr"
@@ -227,14 +232,14 @@
 .incbin "chr/new/spr/bullet.chr"
 .incbin "chr/new/spr/spring.chr"
 .incbin "chr/new/spr/score.chr"
+.incbin "chr/new/spr/blank.chr"
 .incbin "chr/new/spr/1up_smb1.chr"
-.repeat 31
+.repeat 29
       .incbin "chr/new/unused.chr"
 .endrepeat
-.incbin "chr/new/spr/blank.chr"
 
 ; bank 14 (common spr #2, smb2 font)
-.incbin "chr/new/spr/bowser.chr",$a0
+.incbin "chr/new/spr/bowser.chr",$80
 .incbin "chr/new/spr/podoboo.chr"
 .incbin "chr/new/spr/flower.chr"
 .incbin "chr/new/spr/bloober.chr"
@@ -242,11 +247,11 @@
 .incbin "chr/new/spr/bullet.chr"
 .incbin "chr/new/spr/spring.chr"
 .incbin "chr/new/spr/score.chr"
+.incbin "chr/new/spr/blank.chr"
 .incbin "chr/new/spr/1up_smb2.chr"
-.repeat 31
+.repeat 29
       .incbin "chr/new/unused.chr"
 .endrepeat
-.incbin "chr/new/spr/blank.chr"
 
 ; bank 15
 .repeat 64

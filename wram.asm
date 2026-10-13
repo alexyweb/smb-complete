@@ -147,3 +147,27 @@ AreaDataCopy:
 
 EnemyDataCopy:
 	.res $100, $00
+
+;-------------------------------------------------------------------------------------
+; GAME-SPECIFIC PARAMETERS
+
+;status bar nametable offset and length data
+WRAM_StatusBarData:
+      .byte $22, $ef, $06 ; top score display on title screen
+      .byte $20, $62, $06 ; player score
+      .byte $20, $6d, $02 ; coin tally
+      .byte $20, $7a, $03 ; game timer
+
+;pointers used for area lookups
+WRAM_LevelBank:
+	.byte 0
+WRAM_WorldAddrOffsets:
+	.word 0
+WRAM_AreaAddrOffsets:
+	.word 0
+WRAM_LevelAddrOffsets:
+	.word 0
+WRAM_EnemyDataAddrs:
+	.word 0
+WRAM_AreaDataAddrs:
+	.word 0
