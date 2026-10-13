@@ -158,7 +158,13 @@ WRAM_StatusBarData:
       .byte $20, $6d, $02 ; coin tally
       .byte $20, $7a, $03 ; game timer
 
-;pointers used for area lookups
+;enemy stomp heights
+WRAM_BounceHeights:
+	.byte $fd ; standard stomp height
+	.byte $fc ; stomp height used by goombas, koopas, and buzzy beetles
+	.byte $fc ; stomp height used by red parakoopas and flying green parakoopas
+
+;used for area lookups
 WRAM_LevelBank:
 	.byte 0
 WRAM_WorldAddrOffsets:
@@ -170,4 +176,20 @@ WRAM_LevelAddrOffsets:
 WRAM_EnemyDataAddrs:
 	.word 0
 WRAM_AreaDataAddrs:
+	.word 0
+
+;used for castle and overworld loops
+WRAM_LoopCmdWorldNumber:
+	.word 0
+WRAM_LoopCmdPageNumber:
+	.word 0
+WRAM_LoopCmdYPosition:
+	.word 0
+WRAM_MultiLoopCount:
+	.word 0
+WRAM_AreaDataOfsLoopback:
+	.word 0
+
+;used to determine coin requirements for hidden 1-ups
+WRAM_Hidden1UpCoinAmts:
 	.word 0

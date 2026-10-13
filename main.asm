@@ -84,7 +84,7 @@ Start:      ldx #$00                    ;disable NMIs and rendering
             sta SoundEngineSet          ;hack
             lda #%10001000              ;set up pattern table arrangment
             jsr WritePPUReg1            ;and enable NMIs
-WaitForNMI: bit NMIFlags               ;spin until NMI routine has executed
+WaitForNMI: bit NMIFlags                ;spin until NMI routine has executed
             bvc WaitForNMI
             lda RawJoypadBits           ;copy controller 1 inputs over to
             sta SavedJoypadBits         ;temp address that may be modified
@@ -490,9 +490,7 @@ ExEWA:
 EndWorld1Thru7:
            lda WorldEndTimer         ;skip this until world end timer expires
            bne EndExit
-NextWorld: lda #$01
-           sta OperMode              ;go back to game mode
-           lsr
+NextWorld: lda #$00
            sta AreaNumber            ;reset area/level numbers to start the next world
            sta LevelNumber
            ldy CurrentGame
@@ -502,18 +500,17 @@ NextWorld: lda #$01
            lda WorldNumber
            clc
            adc #$01                  ;add one to world number
-           ldy CurrentGame           ;check current game
-           cpy #$01                  ;if not playing SMB1, branch ahead to run
-           bne NextWorld_Complete    ;SMB2J/complete routine
-NextWorld_SMB1:
-           and #%00000111            ;otherwise keep world number between 1-8
-           beq ChkHardM              ;and enable hard mode if we need to
-NextWorld_Complete:
            cmp #WorldA               ;are we going into world A?
            bcc StoreWNum             ;no, update world number accordingly
+           ldy CurrentGame           ;check current game
+           cpy #GAME_COMPLETE
+           bne ChkHardF              ;if not complete mode, branch ahead
+NextWorld_Complete:
            ldy LevelSet              ;are we in SMB1 levels?
+           cpy #LEVELS_SMB1
            bne ChkHardF              ;no, it's fine to go to the next world
-           inc LevelSet              ;otherwise we're going into 2J levels
+           lda #LEVELS_SMB2          ;otherwise we're going into 2J levels
+           sta LevelSet
            lda #World1               ;continue the game at world 1 of SMB2J
            beq StoreWNum
 ChkHardF:  ldy HardWorldFlag         ;have we already toggled worlds A-D flag?
@@ -531,6 +528,8 @@ StoreWNum: sta WorldNumber           ;update the world number
            sta ContinueWorld,y
            jsr LoadAreaPointer       ;get pointer for the next area
            inc FetchNewGameTimerFlag ;and get a new game timer
+           lda #GameMode
+           sta OperMode              ;and oh yeah, go back to game mode also
 EndExit:   rts
 
 ;-------------------------------------------------------------------------------------
@@ -928,10 +927,11 @@ LuigiName:
   .byte "LUIGI" ; no address or length
 
 WarpZoneNumbers:
-  .byte $04, $03, $02, $00                ; warp zone numbers, note spaces on middle
-  .byte BG_BLANK, $05, BG_BLANK, $00      ; zone, partly responsible for
-  .byte $08, $07, $06, $00                ; the minus world
-
+; SMB1 warp zones
+  .byte $04, $03, $02, $00                ; 1-2 warpzone
+  .byte BG_BLANK, $05, BG_BLANK, $00      ; 4-2 underground main area warpzone
+  .byte $08, $07, $06, $00                ; 4-2 ground subarea warpzone
+; SMB2 warp zones
   .byte BG_BLANK, $02, BG_BLANK, $00      ; 1-2 underground main area warpzone
   .byte BG_BLANK, $03, BG_BLANK, $00      ; 1-2 ground subarea warpzone
   .byte BG_BLANK, $04, BG_BLANK, $00      ; 1-2 underground subarea warpzone
@@ -943,6 +943,10 @@ WarpZoneNumbers:
   .byte BG_BLANK, $0b, BG_BLANK, $00      ; A-2 warpzone
   .byte BG_BLANK, $0c, BG_BLANK, $00      ; A-3 warpzone
   .byte BG_BLANK, $0d, BG_BLANK, $00      ; B-4 warpzone
+; VSSMB warp zones
+  .byte $04, $03, $02, $00                ; 1-2 warpzone
+  .byte BG_BLANK, $05, BG_BLANK, $00      ; 4-2 underground main area warpzone
+  .byte BG_BLANK, $06, BG_BLANK, $00      ; 4-2 ground subarea warpzone
 
 GameTextOffsets:
    .byte TopStatusBarLineText-GameText
@@ -1000,17 +1004,14 @@ PutLevelNum:   ldy LevelNumber
 ExWGT:         rts
 
 GetDashStarForDisplay:
-               lda #'-'
-               ldy CurrentGame
-               beq CheckLevelSet
-               dey
+               lda #'-'             ;put dash by default
+               ldy CurrentGame      ;if not in complete mode, always put dash
+               cpy #GAME_COMPLETE
                bne ExGDS
-               ldy PrimaryHardMode
-               bne DisplayStar
-               rts
-CheckLevelSet: ldy LevelSet
-               beq ExGDS
-DisplayStar:   lda #'*'
+               ldy LevelSet         ;otherwise, see if we're playing SMB2 levels
+               cpy #LEVELS_SMB2     ;and if so, replace with star
+               bne ExGDS
+               lda #'*'
 ExGDS:         rts
 
 CheckPlayerName:
@@ -2726,13 +2727,39 @@ SetFore: sta ForegroundScenery     ;otherwise set new foreground scenery bits
 ;--------------------------------
 
 ScrollLockObject_Warp:
-         lda LevelSet             ;playing SMB1 levels?
-         beq WarpsForSMB1Levels   ;yes, use alternate handler for warp zone control
-         lda HardWorldFlag        ;if on worlds A-D, skip ahead to next part
+      jsr CalcWarpZoneControl
+      sta WarpZoneControl      ;set warp zone control
+      jsr WriteWarpZoneMessage
+      lda #$0d                 ;kill piranha plants
+      jsr KillEnemies
+ScrollLockObject:
+      lda ScrollLock      ;invert scroll lock to turn it on
+      eor #%00000001
+      sta ScrollLock
+      rts
+
+BaseWarpZoneNum:
+      .byte $80, $83, $8e, $80
+
+CalcWarpZoneControl:
+         ldx LevelSet             ;get base number for this level set's warp zones
+         lda BaseWarpZoneNum,x
+         cpx #LEVELS_SMB2         ;playing SMB2 levels?
+         beq WarpsForSMB2Levels   ;if so, use alternate handler for warp zone control
+         tax                      ;otherwise, use classic handler for SMB1 and VS. SMB
+         lda WorldNumber          ;if on world 1, use 4-3-2 warp
+         beq BaseW
+         ldy AreaType             ;otherwise check area type for ground area
+         dey
+         bne W5Warp2              ;if not, use world 5 warp
+         beq W5Warp3              ;if found, use 8-7-6 warp (world 6 warp in VS. SMB)
+
+WarpsForSMB2Levels:
+         ldy HardWorldFlag        ;if on worlds A-D, skip ahead to next part
          bne WarpWorldsAThruD     ;note d7 is set in all entries to prevent zero condition
-         ldx #$83                 ;use base number for warp to world 2
-         lda WorldNumber          ;from happening in warp zone code elsewhere
+         ldy WorldNumber          ;from happening in warp zone code elsewhere
          bne WarpWorlds2Thru8     ;if not on world 1, branch to handle a different way
+         tax                      ;transfer number to X for subsequent use
          ldy AreaType             ;check to see if on ground level type
          dey                      ;branch if so to add one to the number
          beq W1Warp2
@@ -2742,23 +2769,16 @@ ScrollLockObject_Warp:
 W1Warp2: inx
 W1Warp1: jmp BaseW
 
-WarpsForSMB1Levels:
-      ldx #$80                 ;use base number for warp to worlds 4-3-2
-      lda WorldNumber          ;from happening in warp zone code elsewhere
-      beq BaseW                ;if on world 1, use 4-3-2 warp
-      ldy AreaType             ;otherwise check area type for ground area
-      dey
-      bne W5Warp2              ;if not, use world 5 warp
-      beq W5Warp3              ;if found, use 8-7-6 warp
-
 WarpWorldsAThruD:
-      lda #$8a                 ;use base number for worlds A-D
       clc
+      adc #$07                 ;add to base number for worlds A-D
       adc LevelNumber          ;add level number itself to it
       bne DumpWarpCtrl         ;then branch to use it
 
 WarpWorlds2Thru8:
-      ldx #$86                 ;use base number for worlds 2-8
+      clc
+      adc #$03                 ;add to base number for worlds 2-8
+      tax                      ;transfer number to X for subsequent use
       lda WorldNumber
       cmp #World3              ;branch if on world 3 to use
       beq BaseW
@@ -2779,15 +2799,6 @@ W5Warp2:  inx
 BaseW:    txa
 
 DumpWarpCtrl:
-      sta WarpZoneControl      ;set warp zone control
-      jsr WriteWarpZoneMessage
-      lda #$0d                 ;kill piranha plants
-      jsr KillEnemies
-
-ScrollLockObject:
-      lda ScrollLock      ;invert scroll lock to turn it on
-      eor #%00000001
-      sta ScrollLock
       rts
 
 ;--------------------------------
@@ -4148,65 +4159,61 @@ NoFPObj:     inc GameEngineSubroutine ;increment to next routine (this may
 
 ;-------------------------------------------------------------------------------------
 
-Hidden1UpCoinAmts:
-      .byte $15, $23, $16, $1b, $17, $18, $23, $00, $00
+Hidden1UpCoinAmts = $00
 
 PlayerEndLevel:
-          lda #$01                  ;force player to walk to the right
+          lda #$01                        ;force player to walk to the right
           jsr AutoControlPlayer
-          lda Player_Y_Position     ;check player's vertical position
+          lda Player_Y_Position           ;check player's vertical position
           cmp #$ae
-          bcc ChkStop               ;if player is not yet off the flagpole, skip this part
+          bcc ChkStop                     ;if player is not yet off the flagpole, skip this part
           lda #$00
-          sta ScrollLock            ;reactivate scroll
-          lda FlagpoleMusicFlag     ;check flag to see if music was already queued
-          bne ChkStop               ;if so, skip this
+          sta ScrollLock                  ;reactivate scroll
+          lda FlagpoleMusicFlag           ;check flag to see if music was already queued
+          bne ChkStop                     ;if so, skip this
           lda #EndOfLevelMusic
-          sta EventMusicQueue       ;load win level music in event music queue
-          inc FlagpoleMusicFlag     ;set flag to keep music from getting queued more than once
-ChkStop:  lda Player_CollisionBits  ;get player collision bits
-          lsr                       ;check for d0 set
-          bcs RdyNextA              ;if d0 set, skip to next part
-          lda StarFlagTaskControl   ;if star flag task control already set,
-          bne InCastle              ;go ahead with the rest of the code
-          inc StarFlagTaskControl   ;otherwise set task control now (this gets ball rolling!)
-InCastle: lda #%00100000            ;set player's background priority bit to
-          sta Player_SprAttrib      ;give illusion of being inside the castle
+          sta EventMusicQueue             ;load win level music in event music queue
+          inc FlagpoleMusicFlag           ;set flag to keep music from getting queued more than once
+ChkStop:  lda Player_CollisionBits        ;get player collision bits
+          lsr                             ;check for d0 set
+          bcs RdyNextA                    ;if d0 set, skip to next part
+          lda StarFlagTaskControl         ;if star flag task control already set,
+          bne InCastle                    ;go ahead with the rest of the code
+          inc StarFlagTaskControl         ;otherwise set task control now (this gets ball rolling!)
+InCastle: lda #%00100000                  ;set player's background priority bit to
+          sta Player_SprAttrib            ;give illusion of being inside the castle
 RdyNextA: lda StarFlagTaskControl
-          cmp #$05                  ;if star flag task control not yet set
-          bne ExitNA                ;beyond last valid task number, branch to leave
-          inc LevelNumber           ;increment level number used for game logic
+          cmp #$05                        ;if star flag task control not yet set
+          bne ExitNA                      ;beyond last valid task number, branch to leave
+          inc LevelNumber                 ;increment level number used for game logic
           lda LevelNumber
-          cmp #$03                  ;check to see if we have yet reached level -4
-          bne NextArea              ;and skip this last part here if not
-          lda CurrentGame           ;playing SMB2J or complete?
-          lsr
-          bcc ChkF10C               ;yes, only need to check if player got 10 coins in third area
-          ldy WorldNumber           ;get world number as offset
-          lda CoinTallyFor1Ups      ;check third area coin tally for bonus 1-ups
-          cmp Hidden1UpCoinAmts,y   ;against minimum value, if player has collected
-          bcs Set1UpF               ;at least this number of coins, set flag
-          bcc NextArea              ;otherwise leave flag clear and branch
-ChkF10C:  lda CoinTallyFor1Ups      ;check third area coin tally for bonus 1-ups
-          cmp #10                   ;against minimum value, if player has not collected
-          bcc NextArea              ;at least this number of coins, leave flag clear
-Set1UpF:  inc Hidden1UpFlag         ;otherwise set hidden 1-up box control flag
-NextArea: inc AreaNumber            ;increment area number used for address loader
+          sta ContinueLevel,y
+          cmp #Level4                     ;check to see if we have yet reached level -4
+          bne ChkEndW                     ;and skip this last part here if not
+          lda WRAM_Hidden1UpCoinAmts      ;copy pointer for hidden 1-up coin requirements
+          sta Hidden1UpCoinAmts
+          lda WRAM_Hidden1UpCoinAmts+1
+          sta Hidden1UpCoinAmts+1
+          ldy WorldNumber                 ;get world number as offset
+          lda CoinTallyFor1Ups            ;check third area coin tally for bonus 1-ups
+          cmp (Hidden1UpCoinAmts),y       ;against minimum value, if player has not collected
+          bcc ChkEndW                     ;at least this number of coins, leave flag clear
+          inc Hidden1UpFlag               ;otherwise set hidden 1-up box control flag
+ChkEndW:  lda LevelNumber                 ;go to next world if past level 4 of current world
+          cmp #Level4+1
+          bcc NextArea
+          jmp NextWorld
+NextArea: inc AreaNumber                  ;increment area number used for address loader
           lda AreaNumber
           ldy CurrentGame
           sta ContinueArea,y
-          lda LevelNumber           ;go to next world if past level 4 of current world
-          cmp #$04
-          bcc NotEndW
-          jmp NextWorld
-NotEndW:  sta ContinueLevel,y
-          jsr LoadAreaPointer       ;get new level pointer
-          inc FetchNewGameTimerFlag ;set flag to load new game timer
-          jsr ChgAreaMode           ;do sub to set secondary mode, disable screen and IRQ
-          lda #$00                  ;reset halfway page to 0 (beginning)
+          jsr LoadAreaPointer             ;get new level pointer
+          inc FetchNewGameTimerFlag       ;set flag to load new game timer
+          jsr ChgAreaMode                 ;do sub to set secondary mode, disable screen and IRQ
+          lda #$00                        ;reset halfway page to 0 (beginning)
           sta HalfwayPage
           lda #Silence
-          sta EventMusicQueue       ;silence music and leave
+          sta EventMusicQueue             ;silence music and leave
 ExitNA:   rts
 
 ;-------------------------------------------------------------------------------------
@@ -4948,8 +4955,9 @@ WarpZoneBug:
       bne ExGTimer           ;if so, branch to leave
 UnlockScreen:
       sta ScrollLock         ;otherwise nullify scroll lock flag
-      lda LevelSet           ;are we in smb2j levels?
-      bne SkipIncBug         ;if so, do not increment warpzonecontrol.
+      lda LevelSet           ;if playing SMB2 levels, branch ahead since
+      cmp #LEVELS_SMB2       ;1-2 would make the following line problematic
+      beq SkipIncBug         ;the other games don't have such a situation
       inc WarpZoneControl    ;hiiiiiiiiii im back :3
 SkipIncBug:
       jmp EraseEnemyObject   ;kill this object
@@ -6366,161 +6374,107 @@ ExitELCore: rts
 
 ;-------------------------------------------------------------------------------------
 
+LoopCmdWorldNumber = $00
+LoopCmdPageNumber = $02
+LoopCmdYPosition = $00
+MultiLoopCount = $00
+AreaDataOfsLoopback = $00
+
 ExecGameLoopback:
-      lda Player_PageLoc        ;send player back four pages
+      lda Player_PageLoc                  ;send player back four pages
       sec
       sbc #$04
       sta Player_PageLoc
-      lda CurrentPageLoc        ;send current page back four pages
+      lda CurrentPageLoc                  ;send current page back four pages
       sec
       sbc #$04
       sta CurrentPageLoc
-      lda ScreenLeft_PageLoc    ;subtract four from page location
-      sec                       ;of screen's left border
+      lda ScreenLeft_PageLoc              ;subtract four from page location
+      sec                                 ;of screen's left border
       sbc #$04
       sta ScreenLeft_PageLoc
-      lda ScreenRight_PageLoc   ;do the same for the page location
-      sec                       ;of screen's right border
+      lda ScreenRight_PageLoc             ;do the same for the page location
+      sec                                 ;of screen's right border
       sbc #$04
       sta ScreenRight_PageLoc
-      lda AreaObjectPageLoc     ;subtract four from page control
-      sec                       ;for area objects
+      lda AreaObjectPageLoc               ;subtract four from page control
+      sec                                 ;for area objects
       sbc #$04
       sta AreaObjectPageLoc
-      lda #$00                  ;initialize page select for both
-      sta EnemyObjectPageSel    ;area and enemy objects
+      lda #$00                            ;initialize page select for both
+      sta EnemyObjectPageSel              ;area and enemy objects
       sta AreaObjectPageSel
-      sta EnemyDataOffset       ;initialize enemy object data offset
-      sta EnemyObjectPageLoc    ;and enemy object page control
-      lda LevelSet              ;use appropiate object offset
-      bne ExecGameLoopbackJ     ;depending on which game's levels we're playing
-      lda AreaDataOfsLoopback,y ;adjust area object offset based on
-      sta AreaDataOffset        ;which loop command we encountered
-      rts
-ExecGameLoopbackJ:
-      lda AreaDataOfsLoopbackJ,y ;adjust area object offset based on
-      sta AreaDataOffset        ;which loop command we encountered
+      sta EnemyDataOffset                 ;initialize enemy object data offset
+      sta EnemyObjectPageLoc              ;and enemy object page control
+      lda WRAM_AreaDataOfsLoopback        ;copy pointer to area object offset lookups
+      sta AreaDataOfsLoopback
+      lda WRAM_AreaDataOfsLoopback+1
+      sta AreaDataOfsLoopback+1
+      lda (AreaDataOfsLoopback),y         ;adjust area object offset based on
+      sta AreaDataOffset                  ;which loop command we encountered
       rts
 
-;loop command data
-;note that some data is never used (it may have been
-;used at one point, but the area data that ref'd it
-;is now missing the loop command object)
-
-;SMB1 loops
-LoopCmdWorldNumber:
-      .byte $03, $03, $06, $06, $06, $06, $06, $06, $07, $07, $07
-      .byte $08, $08
-
-LoopCmdPageNumber:
-      .byte $05, $09, $04, $05, $06, $08, $09, $0a, $07, $0b, $10
-      .byte $05, $09
-
-LoopCmdYPosition:
-      .byte $40, $b0, $b0, $80, $40, $40, $80, $40, $f0, $f0, $f0
-      .byte $b0, $40
-
-MultiLoopCount:
-      .byte $01, $01, $03, $03, $03, $03, $03, $03, $01, $01, $01
-      .byte $01, $01
-
-AreaDataOfsLoopback:
-      .byte $12, $36, $0e, $0e, $0e, $32, $32, $32, $0a, $26, $40
-      .byte $12, $36
-
-;SMB2J loops
-LoopCmdWorldNumberJ:
-  .byte $02, $02, $02, $02, $05, $05, $05, $05, $06, $07, $07, $04
-
-LoopCmdPageNumberJ:
-  .byte $03, $05, $08, $09, $03, $06, $07, $0a, $05, $05, $0b, $05
-
-LoopCmdYPositionJ:
-  .byte $b0, $b0, $40, $30, $b0, $30, $b0, $b0, $f0, $f0, $b0, $f0
-
-MultiLoopCountJ:
-  .byte $02, $02, $02, $02, $02, $02, $02, $02, $01, $01, $01, $01
-
-AreaDataOfsLoopbackJ:
-  .byte $0c, $0c, $42, $42, $10, $10, $30, $30, $06, $0c, $54, $06
-
-ChkEnemyFrenzyJ:
-      jmp ChkEnemyFrenzy             ;lazy but it works?
-
-ProcLoopCommandJ:
-           ldy #$0c                  ;start at the end of each set of loop data
-FindLoopJ: dey
-           bmi ChkEnemyFrenzyJ       ;if all data is checked and not match, do not loop
-           lda WorldNumber           ;check to see if one of the world numbers
-           cmp LoopCmdWorldNumberJ,y ;matches our current world number
-           bne FindLoopJ
-           lda CurrentPageLoc        ;check to see if one of the page numbers
-           cmp LoopCmdPageNumberJ,y  ;matches the page we're currently on
-           bne FindLoopJ
-           lda MultiLoopFailureFlag  ;if we've already failed a multi-part loop, skip all this
-           bne NextLoopJ
-           lda Player_Y_Position     ;check to see if the player is at the correct position
-           cmp LoopCmdYPositionJ,y   ;if not, branch to fail loop
-           bne WrongChkJ
-           lda Player_State          ;check to see if the player is
-           cmp #$00                  ;on solid ground (i.e. not jumping or falling)
-           bne WrongChkJ             ;if not, player fails to pass loop, and loopback
-           lda #Sfx_CorrectPath      ;play sound effect for correct path taken
-           sta Square2SoundQueue
-           bne NextLoopJ             ;skip over failure condition
-WrongChkJ: lda #Sfx_Blast            ;play sound effect for incorrect path taken
-           sta Square2SoundQueue     ;(TO-DO: code in correct sfx)
-           inc MultiLoopFailureFlag  ;set flag for multi-part loop failure
-NextLoopJ: inc MultiLoopPassCntr     ;increment master multi-part counter
-           lda MultiLoopPassCntr     ;have we done all parts?
-           cmp MultiLoopCountJ,y
-           bne InitLCmd              ;if not, skip this part
-           lda MultiLoopFailureFlag  ;if so, have we done them all correctly?
-           beq InitMLp               ;if so, branch past unnecessary check here
-           bne DoLpBack              ;if player is not in right place, loop back
+JumpChkEnemyFrenzy:
+      jmp ChkEnemyFrenzy
 
 ProcLoopCommand:
-          lda LoopCommand           ;check if loop command was found
-          beq ChkEnemyFrenzy
-          lda CurrentColumnPos      ;check to see if we're still on the first page
-          bne ChkEnemyFrenzy        ;if not, do not loop yet
-          lda LevelSet              ;use correct loop command routine
-          bne ProcLoopCommandJ      ;depending on which game we're playing
-          ldy #$11                  ;start at the end of each set of loop data
+          lda LoopCommand                 ;check if loop command was found
+          beq JumpChkEnemyFrenzy
+          lda CurrentColumnPos            ;check to see if we're still on the first page
+          bne JumpChkEnemyFrenzy          ;if not, do not loop yet
+          lda WRAM_LoopCmdWorldNumber     ;copy pointers to world and page lookups
+          sta LoopCmdWorldNumber
+          lda WRAM_LoopCmdWorldNumber+1
+          sta LoopCmdWorldNumber+1
+          lda WRAM_LoopCmdPageNumber
+          sta LoopCmdPageNumber
+          lda WRAM_LoopCmdPageNumber+1
+          sta LoopCmdPageNumber+1
+          ldy LevelSet                    ;get correct loop data size for this level set
+          lda LoopCmdDataSizes,y          ;start at the end of each set of loop data
+          tay
 FindLoop: dey
-          bmi ChkEnemyFrenzy        ;if all data is checked and not match, do not loop
-          lda WorldNumber           ;check to see if one of the world numbers
-          cmp LoopCmdWorldNumber,y  ;matches our current world number
+          bmi ChkEnemyFrenzy              ;if all data is checked and not match, do not loop
+          lda WorldNumber                 ;check to see if one of the world numbers
+          cmp (LoopCmdWorldNumber),y      ;matches our current world number
           bne FindLoop
-          lda CurrentPageLoc        ;check to see if one of the page numbers
-          cmp LoopCmdPageNumber,y   ;matches the page we're currently on
+          lda CurrentPageLoc              ;check to see if one of the page numbers
+          cmp (LoopCmdPageNumber),y       ;matches the page we're currently on
           bne FindLoop
-          lda MultiLoopFailureFlag  ;if we've already failed a multi-part loop, skip all this
+          lda MultiLoopFailureFlag        ;if we've already failed a multi-part loop, skip all this
           bne NextLoop
-          lda Player_Y_Position     ;check to see if the player is at the correct position
-          cmp LoopCmdYPosition,y    ;if not, branch to fail loop
+          lda WRAM_LoopCmdYPosition       ;copy pointer to Y position lookups
+          sta LoopCmdYPosition
+          lda WRAM_LoopCmdYPosition+1
+          sta LoopCmdYPosition+1
+          lda Player_Y_Position           ;check to see if the player is at the correct position
+          cmp (LoopCmdYPosition),y        ;if not, branch to fail loop
           bne WrongChk
-          lda Player_State          ;check to see if the player is
-          cmp #$00                  ;on solid ground (i.e. not jumping or falling)
-          bne WrongChk              ;if not, player fails to pass loop, and loopback
-          lda #Sfx_CorrectPath      ;play sound effect for correct path taken
+          lda Player_State                ;check to see if the player is
+          cmp #$00                        ;on solid ground (i.e. not jumping or falling)
+          bne WrongChk                    ;if not, player fails to pass loop, and loopback
+          lda #Sfx_CorrectPath            ;play sound effect for correct path taken
           sta Square2SoundQueue
-          bne NextLoop              ;skip over failure condition
-WrongChk: lda #Sfx_Blast            ;play sound effect for incorrect path taken
-          sta Square2SoundQueue     ;(TO-DO: code in correct sfx)
-          inc MultiLoopFailureFlag  ;set flag for multi-part loop failure
-NextLoop: inc MultiLoopPassCntr     ;increment master multi-part counter
-          lda MultiLoopPassCntr     ;have we done all parts?
-          cmp MultiLoopCount,y
-          bne InitLCmd              ;if not, skip this part
-          lda MultiLoopFailureFlag  ;if so, have we done them all correctly?
-          beq InitMLp               ;if so, branch past unnecessary check here
-DoLpBack: jsr ExecGameLoopback      ;if player is not in right place, loop back
+          bne NextLoop                    ;skip over failure condition
+WrongChk: lda #Sfx_Blast                  ;play sound effect for incorrect path taken
+          sta Square2SoundQueue           ;(TO-DO: code in correct sfx)
+          inc MultiLoopFailureFlag        ;set flag for multi-part loop failure
+NextLoop: inc MultiLoopPassCntr           ;increment master multi-part counter
+          lda WRAM_MultiLoopCount         ;copy pointer to multi loop count lookup
+          sta MultiLoopCount
+          lda WRAM_MultiLoopCount+1
+          sta MultiLoopCount+1
+          lda MultiLoopPassCntr           ;have we done all parts?
+          cmp (MultiLoopCount),y
+          bne InitLCmd                    ;if not, skip this part
+          lda MultiLoopFailureFlag        ;if so, have we done them all correctly?
+          beq InitMLp                     ;if so, branch past unnecessary check here
+DoLpBack: jsr ExecGameLoopback            ;if player is not in right place, loop back
           jsr KillAllEnemies
-InitMLp:  lda #$00                  ;initialize counters used for multi-part loop commands
+InitMLp:  lda #$00                        ;initialize counters used for multi-part loop commands
           sta MultiLoopPassCntr
           sta MultiLoopFailureFlag
-InitLCmd: lda #$00                  ;initialize loop command flag
+InitLCmd: lda #$00                        ;initialize loop command flag
           sta LoopCommand
 
 ;--------------------------------
@@ -9215,9 +9169,11 @@ RunStarFlagObj:
 
 GameTimerFireworks:
          lda GameTimerDisplay+2 ;retrieve last digit of timer
-         ldy CurrentGame        ;if playing SMB1, use that game's logic
-         cpy #$01
-         beq ClassicFireworks   ;otherwise stick with 2J style fireworks
+         ldy CurrentGame        ;if playing SMB1 or VS. SMB, use classic firework logic
+         cpy #GAME_SMB1         ;otherwise stick with SMB2 style fireworks
+         beq ClassicFireworks
+         cpy #GAME_VSSMB
+         beq ClassicFireworks
          cmp CoinDisplay+1      ;does timer digit match the last digit in the coin tally?
          bne NoFWks             ;if not, skip the fireworks
          and #$01
@@ -10288,18 +10244,13 @@ EnemyStompedPts:
       sta Enemy_State,x          ;set d5 in enemy state
       jsr InitVStf               ;nullify vertical speed, physics-related thing,
       sta Enemy_X_Speed,x        ;and horizontal speed
-      lda CurrentGame            ;if not playing SMB1, branch ahead to set speed
-      lsr
-      bcc SetBounce
-      lda #$fd                   ;set player's vertical speed, to give bounce
-      sta Player_Y_Speed
-      rts
+      clc                        ;clear carry to use generic bounce height
+      jmp SetBounce              ;set player's vertical speed, to give bounce
 
 ChkForDemoteKoopa:
       cmp #$09                   ;branch elsewhere if enemy object < $09
-      bcc HandleStompedShellE
-      jsr SetBounce
-      lda Enemy_ID,x
+      bcc HandleStompedShellE    ;note that carry will be set if branch not taken
+      jsr SetBounce              ;A will have enemy ID when returning from subroutine
       and #%00000001             ;demote koopa paratroopas to ordinary troopas
       sta Enemy_ID,x
       lda #$00                   ;return enemy to normal state
@@ -10331,18 +10282,17 @@ HandleStompedShellE:
        ldy PrimaryHardMode        ;check primary hard mode flag
        lda RevivalRateData,y      ;load timer setting according to flag
        sta EnemyIntervalTimer,x   ;set as enemy timer to revive stomped enemy
+       sec                        ;set carry to use enemy-specific bounce height
 SetBounce:
-       ldy #$fc                   ;set a bounce rate for SMB1
-       lda CurrentGame            ;if playing SMB1, store this bounce rate
-       lsr
-       bcs BnceL
-       ldy #$fa                   ;set a regular bounce rate for all other enemies
+       ldy WRAM_BounceHeights     ;set a regular bounce rate by default
+       bcc BnceL                  ;if carry is clear, use this rate
+       ldy WRAM_BounceHeights+1   ;otherwise, set bounce rate for goomba, koopas, and buzzy beetles
        lda Enemy_ID,x
        cmp #RedParatroopa         ;set a higher bounce rate for red paratroopas
        beq BnceH                  ;and green paratroopas that fly
        cmp #GreenParatroopaFly
        bne BnceL
-BnceH: ldy #$f8                   ;set player's vertical speed for bounce
+BnceH: ldy WRAM_BounceHeights+2   ;set player's vertical speed for bounce
 BnceL: sty Player_Y_Speed         ;and then leave!!!
        rts
 
@@ -11070,9 +11020,11 @@ ChkFlagpoleYPosLoop:
        dex                       ;otherwise decrement offset to use
        bne ChkFlagpoleYPosLoop   ;do this until all data is checked (use last one if all checked)
 MtchF: stx FlagpoleScore         ;store offset here to be used later
-       lda CurrentGame           ;don't run this logic if playing SMB1, since
-       lsr                       ;SMB1 has a different firework system and doesn't
-       bcs RunFR                 ;allow you to earn an extra life at the pole
+       lda CurrentGame           ;don't run this logic if playing SMB1 or VS. SMB, since
+       cmp #GAME_SMB1            ;they have a different firework system and don't
+       beq RunFR                 ;allow you to earn an extra life at the pole
+       cmp #GAME_VSSMB
+       beq RunFR
        lda CoinDisplay
        cmp CoinDisplay+1         ;check to see if coin tally digits are the same
        bne RunFR                 ;if not, branch to use flagpole score data as-is
@@ -11196,9 +11148,9 @@ ExPipeE:  rts                       ;leave!!!
 
 WarpZoneHandler:
           lda WarpZoneControl       ;load warp zone index
-          ldy LevelSet              ;are we in SMB1?
-          beq SMB1WarpZoneHandler   ;if so, use all stars warp-zone handler
-          and #%00001111            ;mask bits
+          bmi WZNumOfs              ;if d7 set, warp zone index already calculated
+          jsr CalcWarpZoneControl   ;otherwise calculate it now
+WZNumOfs: and #%00011111            ;mask bits
           asl
           asl                       ;multiply by four
           tax                       ;save as offset to warp zone numbers (starts at left pipe)
@@ -11229,37 +11181,6 @@ GetWNum:  lda WarpZoneNumbers,x
           inc Hidden1UpFlag         ;set flag for hidden 1-up blocks
           inc FetchNewGameTimerFlag ;set flag to load new game timer
           rts
-
-SMB1WarpZoneHandler:
-         cmp #$04
-         bcs CalculateWarpPipeOffset
-         ldx #$04
-         lda WorldNumber
-         beq RecalculateWarpPipeOffsetSave
-         inx
-         ldy AreaType
-         dey
-         bne RecalculateWarpPipeOffsetSave
-         inx
-
-RecalculateWarpPipeOffsetSave:
-         txa
-         sta WarpZoneControl
-
-CalculateWarpPipeOffset:
-         and #$03
-         asl
-         asl
-         tax
-
-         lda Player_X_Position
-         cmp #$60
-         bcc GetWNum
-         inx
-         cmp #$A0
-         bcc GetWNum
-         inx
-         bne GetWNum             ;why did we waste all this code for an unconditional branch? idk.
 
 ImpedePlayerMove:
        lda #$00                  ;initialize value here
@@ -13629,6 +13550,8 @@ PIntLoop: lda IntermediatePlayerData,x   ;load data to display player as he alwa
           sta $02,x                      ;appears on world/lives display
           dex
           bpl PIntLoop                   ;do this until all data is loaded
+          lda #$0c                       ;load correct CHR bank for small player
+          sta Mirror_CHRBank_4
           ldx #$b8                       ;load offset for small standing
           ldy #$04                       ;load sprite data offset
           jsr DrawPlayerLoop             ;draw player accordingly
@@ -14538,8 +14461,9 @@ InitializeGame:
             sta AreaNumber
             sta HardWorldFlag
             ldy CurrentGame
-            lda InitialLevelSet,y
-            jsr UpdateLevelSet       ;force player to start at correct set of levels
+            lda InitialLevelSet,y    ;force player to start at correct set of levels
+            sta LevelSet
+            jsr LoadLevelSet
             ldy #<Memory_InitializeGame ;clear all memory as in initialization procedure,
             ldx #>Memory_InitializeGame
             jsr InitializeMemory     ;but this time, clear only as far as $076f
@@ -15150,7 +15074,7 @@ NextMRet:
 
 ;-------------------------------------------------------------------------------------
 ; FIXED BANK
-.res $EC00 - *, $FF
+.res $EA00 - *, $FF
 
 WorldAddrOffsets = $00
 AreaAddrOffsets = $02
@@ -15304,6 +15228,7 @@ EDataLoop:  lda (EnemyData),y             ;store enemy data into region of RAM
             jmp LoadMainBank
 
 ;--------------------------------
+; SMB1 LEVEL SET DATA
 
 WorldAddrOffsets_SMB1:
       .byte World1Areas_SMB1-AreaAddrOffsets_SMB1
@@ -15327,6 +15252,25 @@ World7Areas_SMB1: .byte $33, $29, $01, $27, $64
 World8Areas_SMB1: .byte $30, $32, $21, $65
 World9Areas_SMB1: .byte $03, $04, $43
 
+LoopCmdWorldNumber_SMB1:
+      .byte World4, World4, World7, World7, World7, World7, World7, World7
+      .byte World8, World8, World8, World9, World9
+LoopCmdPageNumber_SMB1:
+      .byte $05, $09, $04, $05, $06, $08, $09, $0a
+      .byte $07, $0b, $10, $05, $09
+LoopCmdYPosition_SMB1:
+      .byte $40, $b0, $b0, $80, $40, $40, $80, $40
+      .byte $f0, $f0, $f0, $b0, $40
+MultiLoopCount_SMB1:
+      .byte $01, $01, $03, $03, $03, $03, $03, $03
+      .byte $01, $01, $01, $01, $01
+AreaDataOfsLoopback_SMB1:
+      .byte $12, $36, $0e, $0e, $0e, $32, $32, $32
+      .byte $0a, $26, $40, $12, $36
+
+Hidden1UpCoinAmts_SMB1:
+      .byte 21, 35, 22, 27, 23, 24, 35, 99, 99
+
 LevelAddrOffsets_SMB1:
       .byte $00, $06, $1c, $20
 EnemyDataAddrs_SMB1:
@@ -15347,6 +15291,7 @@ AreaDataAddrs_SMB1:
       .word L_CastleArea1_, L_CastleArea2_, L_CastleArea3_, L_CastleArea4_, L_CastleArea5_, L_CastleArea6_
 
 ;--------------------------------
+; SMB2 LEVEL SET DATA
 
 WorldAddrOffsets_SMB2:
       .byte World1Areas_SMB2-AreaAddrOffsets_SMB2
@@ -15379,6 +15324,25 @@ WorldAAreas_SMB2: .byte $20, $2c, $40, $21, $60
 WorldBAreas_SMB2: .byte $22, $2c, $00, $23, $61
 WorldCAreas_SMB2: .byte $24, $25, $26, $62
 WorldDAreas_SMB2: .byte $27, $28, $29, $63
+
+LoopCmdWorldNumber_SMB2:
+      .byte World3, World3, World3, World3, World5, World6, World6, World6
+      .byte World6, World7, World8, World8
+LoopCmdPageNumber_SMB2:
+      .byte $03, $05, $08, $09, $05, $03, $06, $07
+      .byte $0a, $05, $05, $0b
+LoopCmdYPosition_SMB2:
+      .byte $b0, $b0, $40, $30, $f0, $b0, $30, $b0
+      .byte $b0, $f0, $f0, $b0
+MultiLoopCount_SMB2:
+      .byte $02, $02, $02, $02, $01, $02, $02, $02
+      .byte $02, $01, $01, $01
+AreaDataOfsLoopback_SMB2:
+      .byte $0c, $0c, $42, $42, $06, $10, $10, $30
+      .byte $30, $06, $0c, $54
+
+Hidden1UpCoinAmts_SMB2:
+      .byte 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10
 
 LevelAddrOffsets_SMB2:
       .byte $2c, $0a, $27, $00
@@ -15417,6 +15381,7 @@ UraAreaDataAddrs_SMB2:
       .word L_UndergroundArea6, L_UndergroundArea7, L_WaterArea9
 
 ;--------------------------------
+; VSSMB LEVEL SET DATA
 
 WorldAddrOffsets_VSSMB:
       .byte World1Areas_VSSMB-AreaAddrOffsets_VSSMB
@@ -15438,22 +15403,177 @@ World6Areas_VSSMB: .byte $2e, $23, $26, $60
 World7Areas_VSSMB: .byte $33, $29, $01, $27, $64
 World8Areas_VSSMB: .byte $30, $32, $21, $65
 
+LoopCmdWorldNumber_VSSMB:
+      .byte World5, World5, World7, World7, World7, World7, World7, World7
+      .byte World8, World8, World8
+LoopCmdPageNumber_VSSMB:
+      .byte $05, $09, $04, $05, $06, $08, $09, $0a
+      .byte $07, $0b, $10
+LoopCmdYPosition_VSSMB:
+      .byte $40, $b0, $b0, $40, $40, $b0, $40, $80
+      .byte $f0, $f0, $f0
+MultiLoopCount_VSSMB:
+      .byte $01, $01, $03, $03, $03, $03, $03, $03
+      .byte $01, $01, $01
+AreaDataOfsLoopback_VSSMB:
+      .byte $12, $36, $0e, $0e, $0e, $32, $32, $32
+      .byte $0a, $26, $40
+
+Hidden1UpCoinAmts_VSSMB:
+      .byte 21, 35, 22, 27, 23, 24, 35, 99
+
 LevelAddrOffsets_VSSMB:
-      .byte 0, 4, 28, 31
+      .byte $00, $04, $1c, $1f
 EnemyDataAddrs_VSSMB:
-      .word E_Area00_VSSMB, E_Area01_VSSMB, E_Area02_VSSMB, E_Area03_VSSMB
-      .word E_Area20_VSSMB, E_Area21_VSSMB, E_Area22_VSSMB, E_Area23_VSSMB, E_Area24_VSSMB, E_Area25_VSSMB, E_Area26_VSSMB, E_Area27_VSSMB
-      .word E_Area28_VSSMB, E_Area29_VSSMB, E_Area2A_VSSMB, E_Area2B_VSSMB, E_Area2C_VSSMB, E_Area2D_VSSMB, E_Area2E_VSSMB, E_Area2F_VSSMB
-      .word E_Area30_VSSMB, E_Area31_VSSMB, E_Area32_VSSMB, E_Area33_VSSMB, E_Area34_VSSMB, E_Area35_VSSMB, E_Area36_VSSMB, E_Area37_VSSMB
-      .word E_Area40_VSSMB, E_Area41_VSSMB, E_Area42_VSSMB
-      .word E_Area60_VSSMB, E_Area61_VSSMB, E_Area62_VSSMB, E_Area63_VSSMB, E_Area64_VSSMB, E_Area65_VSSMB, E_Area66_VSSMB, E_Area67_VSSMB
+      .word E_Area00_VSSMB, E_Area01_VSSMB, E_Area02_VSSMB, E_Area03_VSSMB, E_Area20_VSSMB, E_Area21_VSSMB, E_Area22_VSSMB, E_Area23_VSSMB
+      .word E_Area24_VSSMB, E_Area25_VSSMB, E_Area26_VSSMB, E_Area27_VSSMB, E_Area28_VSSMB, E_Area29_VSSMB, E_Area2A_VSSMB, E_Area2B_VSSMB
+      .word E_Area2C_VSSMB, E_Area2D_VSSMB, E_Area2E_VSSMB, E_Area2F_VSSMB, E_Area30_VSSMB, E_Area31_VSSMB, E_Area32_VSSMB, E_Area33_VSSMB
+      .word E_Area34_VSSMB, E_Area35_VSSMB, E_Area36_VSSMB, E_Area37_VSSMB, E_Area40_VSSMB, E_Area41_VSSMB, E_Area42_VSSMB, E_Area60_VSSMB
+      .word E_Area61_VSSMB, E_Area62_VSSMB, E_Area63_VSSMB, E_Area64_VSSMB, E_Area65_VSSMB, E_Area66_VSSMB, E_Area67_VSSMB
 AreaDataAddrs_VSSMB:
-      .word L_Area00_VSSMB, L_Area01_VSSMB, L_Area02_VSSMB, L_Area03_VSSMB
-      .word L_Area20_VSSMB, L_Area21_VSSMB, L_Area22_VSSMB, L_Area23_VSSMB, L_Area24_VSSMB, L_Area25_VSSMB, L_Area26_VSSMB, L_Area27_VSSMB
-      .word L_Area28_VSSMB, L_Area29_VSSMB, L_Area2A_VSSMB, L_Area2B_VSSMB, L_Area2C_VSSMB, L_Area2D_VSSMB, L_Area2L_VSSMB, L_Area2F_VSSMB
-      .word L_Area30_VSSMB, L_Area31_VSSMB, L_Area32_VSSMB, L_Area33_VSSMB, L_Area34_VSSMB, L_Area35_VSSMB, L_Area36_VSSMB, L_Area37_VSSMB
-      .word L_Area40_VSSMB, L_Area41_VSSMB, L_Area42_VSSMB
-      .word L_Area60_VSSMB, L_Area61_VSSMB, L_Area62_VSSMB, L_Area63_VSSMB, L_Area64_VSSMB, L_Area65_VSSMB, L_Area66_VSSMB, L_Area67_VSSMB
+      .word L_Area00_VSSMB, L_Area01_VSSMB, L_Area02_VSSMB, L_Area03_VSSMB, L_Area20_VSSMB, L_Area21_VSSMB, L_Area22_VSSMB, L_Area23_VSSMB
+      .word L_Area24_VSSMB, L_Area25_VSSMB, L_Area26_VSSMB, L_Area27_VSSMB, L_Area28_VSSMB, L_Area29_VSSMB, L_Area2A_VSSMB, L_Area2B_VSSMB
+      .word L_Area2C_VSSMB, L_Area2D_VSSMB, L_Area2E_VSSMB, L_Area2F_VSSMB, L_Area30_VSSMB, L_Area31_VSSMB, L_Area32_VSSMB, L_Area33_VSSMB
+      .word L_Area34_VSSMB, L_Area35_VSSMB, L_Area36_VSSMB, L_Area37_VSSMB, L_Area40_VSSMB, L_Area41_VSSMB, L_Area42_VSSMB, L_Area60_VSSMB
+      .word L_Area61_VSSMB, L_Area62_VSSMB, L_Area63_VSSMB, L_Area64_VSSMB, L_Area65_VSSMB, L_Area66_VSSMB, L_Area67_VSSMB
+
+;------------------------------------------------------------------------------------
+
+LoadLevelSet:
+      ldy LevelSet
+      lda LevelSetBanks,y                 ;store bank number for this level set
+      sta WRAM_LevelBank
+      tya
+      asl                                 ;multiply by 2 for offset into data tables
+      tay
+      lda WorldAddrOffsetPointers,y       ;store pointers for area ID lookups
+      sta WRAM_WorldAddrOffsets
+      lda WorldAddrOffsetPointers+1,y
+      sta WRAM_WorldAddrOffsets+1
+      lda AreaAddrOffsetPointers,y
+      sta WRAM_AreaAddrOffsets
+      lda AreaAddrOffsetPointers+1,y
+      sta WRAM_AreaAddrOffsets+1
+      lda LoopCmdWorldNumberPointers,y    ;store pointers for castle and overworld loops
+      sta WRAM_LoopCmdWorldNumber
+      lda LoopCmdWorldNumberPointers+1,y
+      sta WRAM_LoopCmdWorldNumber+1
+      lda LoopCmdPageNumberPointers,y
+      sta WRAM_LoopCmdPageNumber
+      lda LoopCmdPageNumberPointers+1,y
+      sta WRAM_LoopCmdPageNumber+1
+      lda LoopCmdYPositionPointers,y
+      sta WRAM_LoopCmdYPosition
+      lda LoopCmdYPositionPointers+1,y
+      sta WRAM_LoopCmdYPosition+1
+      lda MultiLoopCountPointers,y
+      sta WRAM_MultiLoopCount
+      lda MultiLoopCountPointers+1,y
+      sta WRAM_MultiLoopCount+1
+      lda AreaDataOfsLoopbackPointers,y
+      sta WRAM_AreaDataOfsLoopback
+      lda AreaDataOfsLoopbackPointers+1,y
+      sta WRAM_AreaDataOfsLoopback+1
+      lda Hidden1UpCoinAmtPointers,y      ;store pointer for hidden 1-up coin requirements
+      sta WRAM_Hidden1UpCoinAmts
+      lda Hidden1UpCoinAmtPointers+1,y
+      sta WRAM_Hidden1UpCoinAmts+1
+      ldy LevelSet                        ;calculate updated offset for subsequent tables
+      lda LevelAddrBaseOffsets,y
+      clc
+      adc HardWorldFlag                   ;adjust offset if in letter worlds
+      asl                                 ;multiply by 2 for correct offset
+      tay
+      lda LevelAddrOffsetPointers,y       ;store pointers for area address lookups
+      sta WRAM_LevelAddrOffsets
+      lda LevelAddrOffsetPointers+1,y
+      sta WRAM_LevelAddrOffsets+1
+      lda EnemyDataAddrPointers,y
+      sta WRAM_EnemyDataAddrs
+      lda EnemyDataAddrPointers+1,y
+      sta WRAM_EnemyDataAddrs+1
+      lda AreaDataAddrPointers,y
+      sta WRAM_AreaDataAddrs
+      lda AreaDataAddrPointers+1,y
+      sta WRAM_AreaDataAddrs+1
+      rts                                 ;we're done here!
+
+; PRG bank containing levels
+LevelSetBanks:
+      .byte LevelsBank1, LevelsBank1, LevelsBank2, LevelsBank2
+
+; for area ID lookups
+WorldAddrOffsetPointers:
+      .word WorldAddrOffsets_SMB1
+      .word WorldAddrOffsets_SMB2
+      .word WorldAddrOffsets_VSSMB
+      .word WorldAddrOffsets_SMB2
+AreaAddrOffsetPointers:
+      .word AreaAddrOffsets_SMB1
+      .word AreaAddrOffsets_SMB2
+      .word AreaAddrOffsets_VSSMB
+      .word AreaAddrOffsets_SMB2
+
+; for castle and overworld loops
+LoopCmdDataSizes:
+      .byte 13, 12, 11, 11
+LoopCmdWorldNumberPointers:
+      .word LoopCmdWorldNumber_SMB1
+      .word LoopCmdWorldNumber_SMB2
+      .word LoopCmdWorldNumber_VSSMB
+      .word LoopCmdWorldNumber_SMB1
+LoopCmdPageNumberPointers:
+      .word LoopCmdPageNumber_SMB1
+      .word LoopCmdPageNumber_SMB2
+      .word LoopCmdPageNumber_VSSMB
+      .word LoopCmdPageNumber_SMB1
+LoopCmdYPositionPointers:
+      .word LoopCmdYPosition_SMB1
+      .word LoopCmdYPosition_SMB2
+      .word LoopCmdYPosition_VSSMB
+      .word LoopCmdYPosition_SMB1
+MultiLoopCountPointers:
+      .word MultiLoopCount_SMB1
+      .word MultiLoopCount_SMB2
+      .word MultiLoopCount_VSSMB
+      .word MultiLoopCount_SMB1
+AreaDataOfsLoopbackPointers:
+      .word AreaDataOfsLoopback_SMB1
+      .word AreaDataOfsLoopback_SMB1
+      .word AreaDataOfsLoopback_SMB1
+      .word AreaDataOfsLoopback_SMB1
+
+; for hidden 1-up coin requirements
+Hidden1UpCoinAmtPointers:
+      .word Hidden1UpCoinAmts_SMB1
+      .word Hidden1UpCoinAmts_SMB2
+      .word Hidden1UpCoinAmts_VSSMB
+      .word Hidden1UpCoinAmts_SMB1
+
+; for enemy and area pointer lookups
+LevelAddrBaseOffsets:
+      .byte 0, 1, 3, 4
+LevelAddrOffsetPointers:
+      .word LevelAddrOffsets_SMB1
+      .word LevelAddrOffsets_SMB2
+      .word UraLevelAddrOffsets_SMB2
+      .word LevelAddrOffsets_VSSMB
+      .word LevelAddrOffsets_SMB2
+      .word UraLevelAddrOffsets_SMB2
+EnemyDataAddrPointers:
+      .word EnemyDataAddrs_SMB1
+      .word EnemyDataAddrs_SMB2
+      .word UraEnemyDataAddrs_SMB2
+      .word EnemyDataAddrs_VSSMB
+      .word EnemyDataAddrs_SMB2
+      .word UraEnemyDataAddrs_SMB2
+AreaDataAddrPointers:
+      .word AreaDataAddrs_SMB1
+      .word AreaDataAddrs_SMB2
+      .word UraAreaDataAddrs_SMB2
+      .word AreaDataAddrs_VSSMB
+      .word AreaDataAddrs_SMB2
+      .word UraAreaDataAddrs_SMB2
 
 ;-------------------------------------------------------------------------------------
 
@@ -15900,83 +16020,6 @@ LoadGameTileset:
       lda SprTiles2,y
       sta Mirror_CHRBank_7
       rts
-
-;------------------------------------------------------------------------------------
-
-WorldAddrOffsetPointers:
-      .word WorldAddrOffsets_SMB1
-      .word WorldAddrOffsets_SMB2
-      .word WorldAddrOffsets_VSSMB
-      .word WorldAddrOffsets_SMB2
-AreaAddrOffsetPointers:
-      .word AreaAddrOffsets_SMB1
-      .word AreaAddrOffsets_SMB2
-      .word AreaAddrOffsets_VSSMB
-      .word AreaAddrOffsets_SMB2
-
-LevelAddrOffsetPointers:
-      .word LevelAddrOffsets_SMB1
-      .word LevelAddrOffsets_SMB2
-      .word UraLevelAddrOffsets_SMB2
-      .word LevelAddrOffsets_VSSMB
-      .word LevelAddrOffsets_SMB2
-      .word UraLevelAddrOffsets_SMB2
-EnemyDataAddrPointers:
-      .word EnemyDataAddrs_SMB1
-      .word EnemyDataAddrs_SMB2
-      .word UraEnemyDataAddrs_SMB2
-      .word EnemyDataAddrs_VSSMB
-      .word EnemyDataAddrs_SMB2
-      .word UraEnemyDataAddrs_SMB2
-AreaDataAddrPointers:
-      .word AreaDataAddrs_SMB1
-      .word AreaDataAddrs_SMB2
-      .word UraAreaDataAddrs_SMB2
-      .word AreaDataAddrs_VSSMB
-      .word AreaDataAddrs_SMB2
-      .word UraAreaDataAddrs_SMB2
-
-LevelSetBanks:
-      .byte LevelsBank1, LevelsBank1, LevelsBank2, LevelsBank2
-LevelSetBaseOffsets:
-      .byte 0, 1, 3, 4
-
-UpdateLevelSet:
-      sta LevelSet                        ;update level set variable
-LoadLevelSet:
-      ldy LevelSet
-      lda LevelSetBanks,y                 ;store bank number for this level set
-      sta WRAM_LevelBank
-      tya
-      asl                                 ;multiply by 2 for offset into data tables
-      tay
-      lda WorldAddrOffsetPointers,y       ;store pointers for area ID lookups
-      sta WRAM_WorldAddrOffsets
-      lda WorldAddrOffsetPointers+1,y
-      sta WRAM_WorldAddrOffsets+1
-      lda AreaAddrOffsetPointers,y
-      sta WRAM_AreaAddrOffsets
-      lda AreaAddrOffsetPointers+1,y
-      sta WRAM_AreaAddrOffsets+1
-      ldy LevelSet                        ;calculate updated offset for subsequent tables
-      lda LevelSetBaseOffsets,y
-      clc
-      adc HardWorldFlag                   ;adjust offset if in letter worlds
-      asl                                 ;multiply by 2 for correct offset
-      tay
-      lda LevelAddrOffsetPointers,y       ;store pointers for area address lookups
-      sta WRAM_LevelAddrOffsets
-      lda LevelAddrOffsetPointers+1,y
-      sta WRAM_LevelAddrOffsets+1
-      lda EnemyDataAddrPointers,y
-      sta WRAM_EnemyDataAddrs
-      lda EnemyDataAddrPointers+1,y
-      sta WRAM_EnemyDataAddrs+1
-      lda AreaDataAddrPointers,y
-      sta WRAM_AreaDataAddrs
-      lda AreaDataAddrPointers+1,y
-      sta WRAM_AreaDataAddrs+1
-      rts                                 ;we're done here!
 
 ;------------------------------------------------------------------------------------
 

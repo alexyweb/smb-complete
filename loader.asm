@@ -1730,9 +1730,21 @@ CopyGameParameters:
         ; make coin tally display three digits
         lda CoinBonusTotal
         cmp #101
-        bcc @Done
+        bcc @CopyBounceHeights
         lda #$03
         sta WRAM_StatusBarData+8
+@CopyBounceHeights:
+        ; copy bounce heights
+        lda CurrentGame
+        asl
+        adc CurrentGame
+        tay
+        lda BounceHeights,y
+        sta WRAM_BounceHeights
+        lda BounceHeights+1,y
+        sta WRAM_BounceHeights+1
+        lda BounceHeights+2,y
+        sta WRAM_BounceHeights+2
 @Done:
         rts
 
@@ -1741,6 +1753,13 @@ StatusBarData:
       .byte $20, $62, $06 ; player score
       .byte $20, $6d, $02 ; coin tally
       .byte $20, $7a, $03 ; game timer
+
+BounceHeights:
+    .byte $fa, $fa, $f8 ; complete mode stomp heights
+    .byte $fd, $fc, $fc ; SMB1 stomp heights
+    .byte $fa, $fa, $f8 ; SMB2 stomp heights
+    .byte $fd, $fc, $fc ; VSSMB stomp heights
+    .byte $fa, $fa, $f8 ; ANNSMB stomp heights
 
 ;-------------------------------------------------------------------------------------
 

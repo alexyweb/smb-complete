@@ -153,7 +153,7 @@ VRAM_NT_SMB2          = 10
 VRAM_NT_VSSMB         = 11
 VRAM_NT_ANNSMB        = 12
 VRAM_NT_TOAD          = 13
-VRAM_NT_PEACH_1ST     = 15
+VRAM_NT_PEACH_1ST     = 16
 VRAM_NT_PEACH_2ND     = 20
 VRAM_NT_CREDITS       = 32
 
