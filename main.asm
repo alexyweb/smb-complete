@@ -179,7 +179,7 @@ PauseRoutine:
                cmp #GameMode          ;are we in game mode?
                bne ExitPause          ;if not, leave
                lda OperMode_Task      ;if we are in game mode, are we running game engine?
-               cmp #$04
+               cmp #$03
                bne ExitPause          ;if not, leave
 ChkPauseTimer: lda GamePauseTimer     ;check if pause timer is still counting down
                beq ChkPauseState
