@@ -15437,6 +15437,82 @@ AreaDataAddrs_VSSMB:
       .word L_Area34_VSSMB, L_Area35_VSSMB, L_Area36_VSSMB, L_Area37_VSSMB, L_Area40_VSSMB, L_Area41_VSSMB, L_Area42_VSSMB, L_Area60_VSSMB
       .word L_Area61_VSSMB, L_Area62_VSSMB, L_Area63_VSSMB, L_Area64_VSSMB, L_Area65_VSSMB, L_Area66_VSSMB, L_Area67_VSSMB
 
+;--------------------------------
+; ANNSMB LEVEL SET DATA
+
+WorldAddrOffsets_ANNSMB:
+      .byte World1Areas_ANNSMB-AreaAddrOffsets_ANNSMB
+      .byte World2Areas_ANNSMB-AreaAddrOffsets_ANNSMB
+      .byte World3Areas_ANNSMB-AreaAddrOffsets_ANNSMB
+      .byte World4Areas_ANNSMB-AreaAddrOffsets_ANNSMB
+      .byte World5Areas_ANNSMB-AreaAddrOffsets_ANNSMB
+      .byte World6Areas_ANNSMB-AreaAddrOffsets_ANNSMB
+      .byte World7Areas_ANNSMB-AreaAddrOffsets_ANNSMB
+      .byte World8Areas_ANNSMB-AreaAddrOffsets_ANNSMB
+      .byte World9Areas_ANNSMB-AreaAddrOffsets_ANNSMB
+
+      .byte WorldAAreas_ANNSMB-AreaAddrOffsets_ANNSMB
+      .byte WorldBAreas_ANNSMB-AreaAddrOffsets_ANNSMB
+      .byte WorldCAreas_ANNSMB-AreaAddrOffsets_ANNSMB
+      .byte WorldDAreas_ANNSMB-AreaAddrOffsets_ANNSMB
+
+AreaAddrOffsets_ANNSMB:
+World1Areas_ANNSMB: .byte $25, $3B, $C0, $26, $60
+World2Areas_ANNSMB: .byte $28, $29, $01, $27, $62
+World3Areas_ANNSMB: .byte $24, $35, $20, $63
+World4Areas_ANNSMB: .byte $22, $29, $41, $2C, $61
+World5Areas_ANNSMB: .byte $2A, $31, $36, $67
+World6Areas_ANNSMB: .byte $2E, $23, $2D, $66
+World7Areas_ANNSMB: .byte $33, $29, $03, $37, $64
+World8Areas_ANNSMB: .byte $30, $32, $21, $65
+World9Areas_ANNSMB: .byte $ff, $ff, $ff, $ff
+
+WorldAAreas_ANNSMB: .byte $20, $2c, $40, $21, $60
+WorldBAreas_ANNSMB: .byte $22, $2c, $00, $23, $61
+WorldCAreas_ANNSMB: .byte $24, $25, $26, $62
+WorldDAreas_ANNSMB: .byte $27, $28, $29, $63
+
+LoopCmdWorldNumber_ANNSMB:
+      .byte $03, $03, $06, $06, $06, $06, $06, $06, $07, $07
+LoopCmdPageNumber_ANNSMB:
+      .byte $05, $09, $04, $05, $06, $08, $09, $0A, $05, $0B
+LoopCmdYPosition_ANNSMB:
+      .byte $B0, $40, $40, $40, $40, $40, $80, $80, $F0, $B0
+MultiLoopCount_ANNSMB:
+      .byte $01, $01, $03, $03, $03, $03, $03, $03, $01, $01
+AreaDataOfsLoopback_ANNSMB:
+      .byte $12, $36, $0E, $0E, $0E, $32, $32, $32, $0C, $54 
+
+Hidden1UpCoinAmts_ANNSMB:
+      .byte $14, $1E, $14, $1B, $13, $18, $13, $63
+
+LevelAddrOffsets_ANNSMB:
+      .byte $00, $05, $21, $25
+	  
+EnemyDataAddrs_ANNSMB:
+      .word E_Map00_ANNSMB, E_Map01_ANNSMB, E_Map02_ANNSMB, E_Map03_ANNSMB, E_Map20_ANNSMB, E_Map21_ANNSMB, E_Map22_ANNSMB, E_Map23_ANNSMB
+      .word E_Map24_ANNSMB, E_Map25_ANNSMB, E_Map26_ANNSMB, E_Map27_ANNSMB, E_Map28_ANNSMB, E_Map29_ANNSMB, E_Map2A_ANNSMB, E_Map2B_ANNSMB
+      .word E_Map2C_ANNSMB, E_Map2D_ANNSMB, E_Map2E_ANNSMB, E_Map2F_ANNSMB, E_Map30_ANNSMB, E_Map31_ANNSMB, E_Map32_ANNSMB, E_Map33_ANNSMB
+      .word E_Map34_ANNSMB, E_Map35_ANNSMB, E_Map36_ANNSMB, E_Map37_ANNSMB, E_Map40_ANNSMB, E_Map41_ANNSMB, E_Map42_ANNSMB, E_Map60_ANNSMB
+      .word E_Map61_ANNSMB, E_Map62_ANNSMB, E_Map63_ANNSMB, E_Map64_ANNSMB, E_Map65_ANNSMB, E_Map66_ANNSMB, E_Map67_ANNSMB
+AreaDataAddrs_ANNSMB:
+      .word L_Map00_ANNSMB, L_Map01_ANNSMB, L_Map02_ANNSMB, L_Map03_ANNSMB, L_Map20_ANNSMB, L_Map21_ANNSMB, L_Map22_ANNSMB, L_Map23_ANNSMB
+      .word L_Map24_ANNSMB, L_Map25_ANNSMB, L_Map26_ANNSMB, L_Map27_ANNSMB, L_Map28_ANNSMB, L_Map29_ANNSMB, L_Map2A_ANNSMB, L_Map2B_ANNSMB
+      .word L_Map2C_ANNSMB, L_Map2D_ANNSMB, L_Map2E_ANNSMB, L_Map2F_ANNSMB, L_Map30_ANNSMB, L_Map31_ANNSMB, L_Map32_ANNSMB, L_Map33_ANNSMB
+      .word L_Map34_ANNSMB, L_Map35_ANNSMB, L_Map36_ANNSMB, L_Map37_ANNSMB, L_Map40_ANNSMB, L_Map41_ANNSMB, L_Map42_ANNSMB, L_Map60_ANNSMB
+      .word L_Map61_ANNSMB, L_Map62_ANNSMB, L_Map63_ANNSMB, L_Map64_ANNSMB, L_Map65_ANNSMB, L_Map66_ANNSMB, L_Map67_ANNSMB
+
+UraLevelAddrOffsets_ANNSMB:
+      .byte $00, $01, $0f, $11
+UraEnemyDataAddrs_ANNSMB:
+     .word E_MapU00_ANNSMB,E_MapU20_ANNSMB,E_MapU21_ANNSMB,E_MapU22_ANNSMB,E_MapU23_ANNSMB,E_MapU24_ANNSMB,E_MapU25_ANNSMB,E_MapU26_ANNSMB
+     .word E_MapU27_ANNSMB,E_MapU28_ANNSMB,E_MapU29_ANNSMB,E_MapU2A_ANNSMB,E_MapU2B_ANNSMB,E_MapU2C_ANNSMB,E_MapU2D_ANNSMB,E_MapU40_ANNSMB
+     .word E_MapU41_ANNSMB,E_MapU60_ANNSMB,E_MapU61_ANNSMB,E_MapU62_ANNSMB,E_MapU63_ANNSMB
+UraAreaDataAddrs_ANNSMB:
+     .word L_MapU00_ANNSMB,L_MapU20_ANNSMB,L_MapU21_ANNSMB,L_MapU22_ANNSMB,L_MapU23_ANNSMB,L_MapU24_ANNSMB,L_MapU25_ANNSMB,L_MapU26_ANNSMB
+     .word L_MapU27_ANNSMB,L_MapU28_ANNSMB,L_MapU29_ANNSMB,L_MapU2A_ANNSMB,L_MapU2B_ANNSMB,L_MapU2C_ANNSMB,L_MapU2D_ANNSMB,L_MapU40_ANNSMB
+     .word L_MapU41_ANNSMB,L_MapU60_ANNSMB,L_MapU61_ANNSMB,L_MapU62_ANNSMB,L_MapU63_ANNSMB
+	  
 ;------------------------------------------------------------------------------------
 
 LoadLevelSet:
@@ -15507,12 +15583,12 @@ WorldAddrOffsetPointers:
       .word WorldAddrOffsets_SMB1
       .word WorldAddrOffsets_SMB2
       .word WorldAddrOffsets_VSSMB
-      .word WorldAddrOffsets_SMB2
+      .word WorldAddrOffsets_ANNSMB
 AreaAddrOffsetPointers:
       .word AreaAddrOffsets_SMB1
       .word AreaAddrOffsets_SMB2
       .word AreaAddrOffsets_VSSMB
-      .word AreaAddrOffsets_SMB2
+      .word AreaAddrOffsets_ANNSMB
 
 ; for castle and overworld loops
 LoopCmdDataSizes:
@@ -15521,22 +15597,22 @@ LoopCmdWorldNumberPointers:
       .word LoopCmdWorldNumber_SMB1
       .word LoopCmdWorldNumber_SMB2
       .word LoopCmdWorldNumber_VSSMB
-      .word LoopCmdWorldNumber_SMB1
+      .word LoopCmdWorldNumber_ANNSMB
 LoopCmdPageNumberPointers:
       .word LoopCmdPageNumber_SMB1
       .word LoopCmdPageNumber_SMB2
       .word LoopCmdPageNumber_VSSMB
-      .word LoopCmdPageNumber_SMB1
+      .word LoopCmdPageNumber_ANNSMB
 LoopCmdYPositionPointers:
       .word LoopCmdYPosition_SMB1
       .word LoopCmdYPosition_SMB2
       .word LoopCmdYPosition_VSSMB
-      .word LoopCmdYPosition_SMB1
+      .word LoopCmdYPosition_ANNSMB
 MultiLoopCountPointers:
       .word MultiLoopCount_SMB1
       .word MultiLoopCount_SMB2
       .word MultiLoopCount_VSSMB
-      .word MultiLoopCount_SMB1
+      .word MultiLoopCount_ANNSMB
 AreaDataOfsLoopbackPointers:
       .word AreaDataOfsLoopback_SMB1
       .word AreaDataOfsLoopback_SMB1
@@ -15548,7 +15624,7 @@ Hidden1UpCoinAmtPointers:
       .word Hidden1UpCoinAmts_SMB1
       .word Hidden1UpCoinAmts_SMB2
       .word Hidden1UpCoinAmts_VSSMB
-      .word Hidden1UpCoinAmts_SMB1
+      .word Hidden1UpCoinAmts_ANNSMB
 
 ; for enemy and area pointer lookups
 LevelAddrBaseOffsets:
@@ -15558,22 +15634,22 @@ LevelAddrOffsetPointers:
       .word LevelAddrOffsets_SMB2
       .word UraLevelAddrOffsets_SMB2
       .word LevelAddrOffsets_VSSMB
-      .word LevelAddrOffsets_SMB2
-      .word UraLevelAddrOffsets_SMB2
+      .word LevelAddrOffsets_ANNSMB
+      .word UraLevelAddrOffsets_ANNSMB
 EnemyDataAddrPointers:
       .word EnemyDataAddrs_SMB1
       .word EnemyDataAddrs_SMB2
       .word UraEnemyDataAddrs_SMB2
       .word EnemyDataAddrs_VSSMB
-      .word EnemyDataAddrs_SMB2
-      .word UraEnemyDataAddrs_SMB2
+      .word EnemyDataAddrs_ANNSMB
+      .word UraEnemyDataAddrs_ANNSMB
 AreaDataAddrPointers:
       .word AreaDataAddrs_SMB1
       .word AreaDataAddrs_SMB2
       .word UraAreaDataAddrs_SMB2
       .word AreaDataAddrs_VSSMB
-      .word AreaDataAddrs_SMB2
-      .word UraAreaDataAddrs_SMB2
+      .word AreaDataAddrs_ANNSMB
+      .word UraAreaDataAddrs_ANNSMB
 
 ;-------------------------------------------------------------------------------------
 
