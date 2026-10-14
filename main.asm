@@ -947,6 +947,13 @@ WarpZoneNumbers:
   .byte $04, $03, $02, $00                ; 1-2 warpzone
   .byte BG_BLANK, $05, BG_BLANK, $00      ; 4-2 underground main area warpzone
   .byte BG_BLANK, $06, BG_BLANK, $00      ; 4-2 ground subarea warpzone
+; ANNSMB warp zones
+  .byte $04, $03, $02, $00                ; 1-2 warpzone
+  .byte BG_BLANK, $05, BG_BLANK, $00      ; 4-2 underground main area warpzone
+  .byte $08, $07, $06, $00                ; 4-2 ground subarea warpzone
+  .byte BG_BLANK, $0b, BG_BLANK, $00      ; A-2 warpzone
+  .byte BG_BLANK, $0c, BG_BLANK, $00      ; A-3 warpzone
+  .byte BG_BLANK, $0d, BG_BLANK, $00      ; B-4 warpzone
 
 GameTextOffsets:
    .byte TopStatusBarLineText-GameText
@@ -2727,7 +2734,7 @@ SetFore: sta ForegroundScenery     ;otherwise set new foreground scenery bits
 ;--------------------------------
 
 ScrollLockObject_Warp:
-      jsr CalcWarpZoneControl
+      jsr CalcWarpZoneCtrl
       sta WarpZoneControl      ;set warp zone control
       jsr WriteWarpZoneMessage
       lda #$0d                 ;kill piranha plants
@@ -2739,19 +2746,33 @@ ScrollLockObject:
       rts
 
 BaseWarpZoneNum:
-      .byte $80, $83, $8e, $80
+      .byte $80, $83, $8e, $91
 
-CalcWarpZoneControl:
+CalcWarpZoneCtrl:
          ldx LevelSet             ;get base number for this level set's warp zones
          lda BaseWarpZoneNum,x
          cpx #LEVELS_SMB2         ;playing SMB2 levels?
          beq WarpsForSMB2Levels   ;if so, use alternate handler for warp zone control
-         tax                      ;otherwise, use classic handler for SMB1 and VS. SMB
+         ldx HardWorldFlag        ;playing ANNSMB letter worlds?
+         beq ClassicWarpsLogic    ;if not, use SMB1-style warp zone logic
+         clc
+         adc #$03                 ;add to base number for worlds A-D
+         tax                      ;transfer number to X for subsequent use
+         lda WorldNumber          ;if not on world A, use world D warp
+         cmp #WorldA
+         bne W5Warp3
+         ldy LevelNumber          ;otherwise check for A-2
+         dey
+         beq BaseW                ;if found, use world B warp
+         bne W5Warp2              ;if not found, use world C warp
+
+ClassicWarpsLogic:
+         tax                      ;transfer number to X for subsequent use
          lda WorldNumber          ;if on world 1, use 4-3-2 warp
          beq BaseW
          ldy AreaType             ;otherwise check area type for ground area
          dey
-         bne W5Warp2              ;if not, use world 5 warp
+         bne W5Warp2              ;if not found, use world 5 warp
          beq W5Warp3              ;if found, use 8-7-6 warp (world 6 warp in VS. SMB)
 
 WarpsForSMB2Levels:
@@ -5872,6 +5893,8 @@ InitBlock_XY_Pos:
 ;--------------------------------
 
 BumpBlock:
+           lda $05                 ;store metatile number to stack
+           pha
            jsr CheckTopOfBlock     ;check to see if there's a coin directly above this block
            lda #Sfx_Bump
            sta Square1SoundQueue   ;play bump sound
@@ -5881,7 +5904,7 @@ BumpBlock:
            sta Player_Y_Speed      ;init player's vertical speed
            lda #$fe
            sta Block_Y_Speed,x     ;set vertical speed for block object
-           lda $05                 ;get original metatile from stack
+           pla                     ;get original metatile from stack
            jsr BlockBumpedChk      ;do a sub to check which block player bumped head on
            bcc ExitBlockChk        ;if no match was found, branch to leave
            tya                     ;move block number to A
@@ -6587,7 +6610,7 @@ CheckRightExtBounds:
         lda (EnemyData),y        ;get second byte of object
         and #%01000000           ;check to see if hard mode bit is set
         beq CheckForEnemyGroup   ;if not, branch to check for group enemy objects
-        lda SecondaryHardMode    ;if set, check to see if secondary hard mode flag
+        lda PrimaryHardMode      ;if set, check to see if primary hard mode flag
         beq Inc2B                ;is on, and if not, branch to skip this object completely
 
 CheckForEnemyGroup:
@@ -11149,7 +11172,7 @@ ExPipeE:  rts                       ;leave!!!
 WarpZoneHandler:
           lda WarpZoneControl       ;load warp zone index
           bmi WZNumOfs              ;if d7 set, warp zone index already calculated
-          jsr CalcWarpZoneControl   ;otherwise calculate it now
+          jsr CalcWarpZoneCtrl      ;otherwise calculate it now
 WZNumOfs: and #%00011111            ;mask bits
           asl
           asl                       ;multiply by four
@@ -14294,8 +14317,9 @@ WorldLevelSelect:
              bne IncWorldNum
              lda PressedJoypad2Bits
              and #A_Button
-             beq NoWorldLevelSel
-             ; increment level number
+             bne IncLevelNum
+             rts
+IncLevelNum: ; increment level number
              inc LevelNumber
              lda LevelNumber
              and #$03
@@ -14303,8 +14327,15 @@ WorldLevelSelect:
              jmp DrawWorldLevel
 IncWorldNum: ; increment world number
              inc WorldNumber
+             ; skip world 9 if ANNSMB
              lda CurrentGame
-             asl
+             ldy WorldNumber
+             cmp #GAME_ANNSMB
+             bne NotANNW9
+             cpy #World9
+             bne NotANNW9
+             inc WorldNumber
+NotANNW9:    asl
              clc
              adc HardWorldFlag
              tay
@@ -14349,9 +14380,9 @@ DrawWorldLevel:
              clc
              adc #$06
              sta VRAM_Buffer_Offset
-             lda #$18             ;set demo timer
+             ; set demo timer
+             lda #$18
              sta DemoTimer
-NoWorldLevelSel:
              rts
 
 LongWorlds:
@@ -15074,7 +15105,7 @@ NextMRet:
 
 ;-------------------------------------------------------------------------------------
 ; FIXED BANK
-.res $EA00 - *, $FF
+.res $E9C0 - *, $FF
 
 WorldAddrOffsets = $00
 AreaAddrOffsets = $02
@@ -15246,11 +15277,11 @@ World1Areas_SMB1: .byte $25, $29, $40, $26, $60
 World2Areas_SMB1: .byte $28, $29, $01, $27, $62
 World3Areas_SMB1: .byte $24, $35, $20, $63
 World4Areas_SMB1: .byte $22, $29, $41, $2c, $61
-World5Areas_SMB1: .byte $2a, $31, $26, $62
-World6Areas_SMB1: .byte $2e, $23, $2d, $60
-World7Areas_SMB1: .byte $33, $29, $01, $27, $64
+World5Areas_SMB1: .byte $2a, $31, $36, $67
+World6Areas_SMB1: .byte $2e, $23, $2d, $66
+World7Areas_SMB1: .byte $33, $29, $03, $37, $64
 World8Areas_SMB1: .byte $30, $32, $21, $65
-World9Areas_SMB1: .byte $03, $04, $43
+World9Areas_SMB1: .byte $04, $05, $43
 
 LoopCmdWorldNumber_SMB1:
       .byte World4, World4, World7, World7, World7, World7, World7, World7
@@ -15272,23 +15303,25 @@ Hidden1UpCoinAmts_SMB1:
       .byte 21, 35, 22, 27, 23, 24, 35, 99, 99
 
 LevelAddrOffsets_SMB1:
-      .byte $00, $06, $1c, $20
+      .byte $00, $06, $1e, $22
 EnemyDataAddrs_SMB1:
       .word E_WaterArea1_, E_WaterArea2_, E_WaterArea3_, E_WaterArea4_, E_WaterArea5_, E_WaterArea6_
-      .word E_GroundArea1_, E_GroundArea2_, E_GroundArea3_
-      .word E_GroundArea4_, E_GroundArea5_, E_GroundArea6_, E_GroundArea7_, E_GroundArea8_, E_GroundArea9_
-      .word E_GroundArea10_, E_GroundArea11_, E_GroundArea12_, E_GroundArea13_, E_GroundArea14_, E_GroundArea15_
-      .word E_GroundArea16_, E_GroundArea17_, E_GroundArea18_, E_GroundArea19_, E_GroundArea20_, E_GroundArea21_
-      .word E_GroundArea22_, E_UndergroundArea1_, E_UndergroundArea2_, E_UndergroundArea3_, E_UndergroundArea4_
-      .word E_CastleArea1_, E_CastleArea2_, E_CastleArea3_, E_CastleArea4_, E_CastleArea5_, E_CastleArea6_
+      .word E_GroundArea1_, E_GroundArea2_, E_GroundArea3_, E_GroundArea4_, E_GroundArea5_, E_GroundArea6_
+      .word E_GroundArea7_, E_GroundArea8_, E_GroundArea9_, E_GroundArea10_, E_GroundArea11_, E_GroundArea12_
+      .word E_GroundArea13_, E_GroundArea14_, E_GroundArea15_, E_GroundArea16_, E_GroundArea17_, E_GroundArea18_
+      .word E_GroundArea19_, E_GroundArea20_, E_GroundArea21_, E_GroundArea22_, E_GroundArea23_, E_GroundArea24_
+      .word E_UndergroundArea1_, E_UndergroundArea2_, E_UndergroundArea3_, E_UndergroundArea4_, E_CastleArea1_
+      .word E_CastleArea2_, E_CastleArea3_, E_CastleArea4_, E_CastleArea5_, E_CastleArea6_, E_CastleArea7_
+      .word E_CastleArea8_
 AreaDataAddrs_SMB1:
       .word L_WaterArea1_, L_WaterArea2_, L_WaterArea3_, L_WaterArea4_, L_WaterArea5_, L_WaterArea6_
-      .word L_GroundArea1_, L_GroundArea2_, L_GroundArea3_
-      .word L_GroundArea4_, L_GroundArea5_, L_GroundArea6_, L_GroundArea7_, L_GroundArea8_, L_GroundArea9_
-      .word L_GroundArea10_, L_GroundArea11_, L_GroundArea12_, L_GroundArea13_, L_GroundArea14_, L_GroundArea15_
-      .word L_GroundArea16_, L_GroundArea17_, L_GroundArea18_, L_GroundArea19_, L_GroundArea20_, L_GroundArea21_
-      .word L_GroundArea22_, L_UndergroundArea1_, L_UndergroundArea2_, L_UndergroundArea3_, L_UndergroundArea4_
-      .word L_CastleArea1_, L_CastleArea2_, L_CastleArea3_, L_CastleArea4_, L_CastleArea5_, L_CastleArea6_
+      .word L_GroundArea1_, L_GroundArea2_, L_GroundArea3_, L_GroundArea4_, L_GroundArea5_, L_GroundArea6_
+      .word L_GroundArea7_, L_GroundArea8_, L_GroundArea9_, L_GroundArea10_, L_GroundArea11_, L_GroundArea12_
+      .word L_GroundArea13_, L_GroundArea14_, L_GroundArea15_, L_GroundArea16_, L_GroundArea17_, L_GroundArea18_
+      .word L_GroundArea19_, L_GroundArea20_, L_GroundArea21_, L_GroundArea22_, L_GroundArea23_, L_GroundArea24_
+      .word L_UndergroundArea1_, L_UndergroundArea2_, L_UndergroundArea3_, L_UndergroundArea4_, L_CastleArea1_
+      .word L_CastleArea2_, L_CastleArea3_, L_CastleArea4_, L_CastleArea5_, L_CastleArea6_, L_CastleArea7_
+      .word L_CastleArea8_
 
 ;--------------------------------
 ; SMB2 LEVEL SET DATA
@@ -15449,7 +15482,7 @@ WorldAddrOffsets_ANNSMB:
       .byte World6Areas_ANNSMB-AreaAddrOffsets_ANNSMB
       .byte World7Areas_ANNSMB-AreaAddrOffsets_ANNSMB
       .byte World8Areas_ANNSMB-AreaAddrOffsets_ANNSMB
-      .byte World9Areas_ANNSMB-AreaAddrOffsets_ANNSMB
+      .byte $00 ; world 9 doesn't exist
 
       .byte WorldAAreas_ANNSMB-AreaAddrOffsets_ANNSMB
       .byte WorldBAreas_ANNSMB-AreaAddrOffsets_ANNSMB
@@ -15457,15 +15490,14 @@ WorldAddrOffsets_ANNSMB:
       .byte WorldDAreas_ANNSMB-AreaAddrOffsets_ANNSMB
 
 AreaAddrOffsets_ANNSMB:
-World1Areas_ANNSMB: .byte $25, $3B, $C0, $26, $60
+World1Areas_ANNSMB: .byte $25, $3b, $40, $26, $60
 World2Areas_ANNSMB: .byte $28, $29, $01, $27, $62
 World3Areas_ANNSMB: .byte $24, $35, $20, $63
-World4Areas_ANNSMB: .byte $22, $29, $41, $2C, $61
-World5Areas_ANNSMB: .byte $2A, $31, $36, $67
-World6Areas_ANNSMB: .byte $2E, $23, $2D, $66
+World4Areas_ANNSMB: .byte $22, $29, $41, $2c, $61
+World5Areas_ANNSMB: .byte $2a, $31, $36, $67
+World6Areas_ANNSMB: .byte $2e, $23, $2d, $66
 World7Areas_ANNSMB: .byte $33, $29, $03, $37, $64
 World8Areas_ANNSMB: .byte $30, $32, $21, $65
-World9Areas_ANNSMB: .byte $ff, $ff, $ff, $ff
 
 WorldAAreas_ANNSMB: .byte $20, $2c, $40, $21, $60
 WorldBAreas_ANNSMB: .byte $22, $2c, $00, $23, $61
@@ -15473,45 +15505,51 @@ WorldCAreas_ANNSMB: .byte $24, $25, $26, $62
 WorldDAreas_ANNSMB: .byte $27, $28, $29, $63
 
 LoopCmdWorldNumber_ANNSMB:
-      .byte $03, $03, $06, $06, $06, $06, $06, $06, $07, $07
+      .byte World4, World4, World7, World7, World7, World7, World7, World7
+      .byte World8, World8
 LoopCmdPageNumber_ANNSMB:
-      .byte $05, $09, $04, $05, $06, $08, $09, $0A, $05, $0B
+      .byte $05, $09, $04, $05, $06, $08, $09, $0a
+      .byte $05, $0b
 LoopCmdYPosition_ANNSMB:
-      .byte $B0, $40, $40, $40, $40, $40, $80, $80, $F0, $B0
+      .byte $b0, $40, $40, $40, $40, $40, $80, $80
+      .byte $f0, $b0
 MultiLoopCount_ANNSMB:
-      .byte $01, $01, $03, $03, $03, $03, $03, $03, $01, $01
+      .byte $01, $01, $03, $03, $03, $03, $03, $03
+      .byte $01, $01
 AreaDataOfsLoopback_ANNSMB:
-      .byte $12, $36, $0E, $0E, $0E, $32, $32, $32, $0C, $54 
+      .byte $12, $36, $0e, $0e, $0e, $32, $32, $32
+      .byte $0c, $54 
 
 Hidden1UpCoinAmts_ANNSMB:
-      .byte $14, $1E, $14, $1B, $13, $18, $13, $63
+      .byte 20, 30, 20, 27, 19, 24, 19, 99, 99, 20, 30, 20, 27
 
 LevelAddrOffsets_ANNSMB:
-      .byte $00, $04, $1c, $1f
-	  
+      .byte $00, $05, $21, $25  
 EnemyDataAddrs_ANNSMB:
-      .word E_Map00_ANNSMB, E_Map01_ANNSMB, E_Map02_ANNSMB, E_Map03_ANNSMB, E_Map20_ANNSMB, E_Map21_ANNSMB, E_Map22_ANNSMB, E_Map23_ANNSMB
-      .word E_Map24_ANNSMB, E_Map25_ANNSMB, E_Map26_ANNSMB, E_Map27_ANNSMB, E_Map28_ANNSMB, E_Map29_ANNSMB, E_Map2A_ANNSMB, E_Map2B_ANNSMB
-      .word E_Map2C_ANNSMB, E_Map2D_ANNSMB, E_Map2E_ANNSMB, E_Map2F_ANNSMB, E_Map30_ANNSMB, E_Map31_ANNSMB, E_Map32_ANNSMB, E_Map33_ANNSMB
-      .word E_Map34_ANNSMB, E_Map35_ANNSMB, E_Map36_ANNSMB, E_Map37_ANNSMB, E_Map40_ANNSMB, E_Map41_ANNSMB, E_Map42_ANNSMB, E_Map60_ANNSMB
-      .word E_Map61_ANNSMB, E_Map62_ANNSMB, E_Map63_ANNSMB, E_Map64_ANNSMB, E_Map65_ANNSMB, E_Map66_ANNSMB, E_Map67_ANNSMB
+      .word E_Area00_ANNSMB, E_Area01_ANNSMB, E_Area02_ANNSMB, E_Area03_ANNSMB, E_Area04_ANNSMB, E_Area20_ANNSMB, E_Area21_ANNSMB, E_Area22_ANNSMB
+      .word E_Area23_ANNSMB, E_Area24_ANNSMB, E_Area25_ANNSMB, E_Area26_ANNSMB, E_Area27_ANNSMB, E_Area28_ANNSMB, E_Area29_ANNSMB, E_Area2A_ANNSMB
+      .word E_Area2B_ANNSMB, E_Area2C_ANNSMB, E_Area2D_ANNSMB, E_Area2E_ANNSMB, E_Area2F_ANNSMB, E_Area30_ANNSMB, E_Area31_ANNSMB, E_Area32_ANNSMB
+      .word E_Area33_ANNSMB, E_Area34_ANNSMB, E_Area35_ANNSMB, E_Area36_ANNSMB, E_Area37_ANNSMB, E_Area38_ANNSMB, E_Area39_ANNSMB, E_Area3A_ANNSMB
+      .word E_Area3B_ANNSMB, E_Area40_ANNSMB, E_Area41_ANNSMB, E_Area42_ANNSMB, E_Area43_ANNSMB, E_Area60_ANNSMB, E_Area61_ANNSMB, E_Area62_ANNSMB
+      .word E_Area63_ANNSMB, E_Area64_ANNSMB, E_Area65_ANNSMB, E_Area66_ANNSMB, E_Area67_ANNSMB
 AreaDataAddrs_ANNSMB:
-      .word L_Map00_ANNSMB, L_Map01_ANNSMB, L_Map02_ANNSMB, L_Map03_ANNSMB, L_Map20_ANNSMB, L_Map21_ANNSMB, L_Map22_ANNSMB, L_Map23_ANNSMB
-      .word L_Map24_ANNSMB, L_Map25_ANNSMB, L_Map26_ANNSMB, L_Map27_ANNSMB, L_Map28_ANNSMB, L_Map29_ANNSMB, L_Map2A_ANNSMB, L_Map2B_ANNSMB
-      .word L_Map2C_ANNSMB, L_Map2D_ANNSMB, L_Map2E_ANNSMB, L_Map2F_ANNSMB, L_Map30_ANNSMB, L_Map31_ANNSMB, L_Map32_ANNSMB, L_Map33_ANNSMB
-      .word L_Map34_ANNSMB, L_Map35_ANNSMB, L_Map36_ANNSMB, L_Map37_ANNSMB, L_Map40_ANNSMB, L_Map41_ANNSMB, L_Map42_ANNSMB, L_Map60_ANNSMB
-      .word L_Map61_ANNSMB, L_Map62_ANNSMB, L_Map63_ANNSMB, L_Map64_ANNSMB, L_Map65_ANNSMB, L_Map66_ANNSMB, L_Map67_ANNSMB
+      .word L_Area00_ANNSMB, L_Area01_ANNSMB, L_Area02_ANNSMB, L_Area03_ANNSMB, L_Area04_ANNSMB, L_Area20_ANNSMB, L_Area21_ANNSMB, L_Area22_ANNSMB
+      .word L_Area23_ANNSMB, L_Area24_ANNSMB, L_Area25_ANNSMB, L_Area26_ANNSMB, L_Area27_ANNSMB, L_Area28_ANNSMB, L_Area29_ANNSMB, L_Area2A_ANNSMB
+      .word L_Area2B_ANNSMB, L_Area2C_ANNSMB, L_Area2D_ANNSMB, L_Area2E_ANNSMB, L_Area2F_ANNSMB, L_Area30_ANNSMB, L_Area31_ANNSMB, L_Area32_ANNSMB
+      .word L_Area33_ANNSMB, L_Area34_ANNSMB, L_Area35_ANNSMB, L_Area36_ANNSMB, L_Area37_ANNSMB, L_Area38_ANNSMB, L_Area39_ANNSMB, L_Area3A_ANNSMB
+      .word L_Area3B_ANNSMB, L_Area40_ANNSMB, L_Area41_ANNSMB, L_Area42_ANNSMB, L_Area43_ANNSMB, L_Area60_ANNSMB, L_Area61_ANNSMB, L_Area62_ANNSMB
+      .word L_Area63_ANNSMB, L_Area64_ANNSMB, L_Area65_ANNSMB, L_Area66_ANNSMB, L_Area67_ANNSMB
 
 UraLevelAddrOffsets_ANNSMB:
       .byte $00, $01, $0f, $11
 UraEnemyDataAddrs_ANNSMB:
-     .word E_MapU00_ANNSMB,E_MapU20_ANNSMB,E_MapU21_ANNSMB,E_MapU22_ANNSMB,E_MapU23_ANNSMB,E_MapU24_ANNSMB,E_MapU25_ANNSMB,E_MapU26_ANNSMB
-     .word E_MapU27_ANNSMB,E_MapU28_ANNSMB,E_MapU29_ANNSMB,E_MapU2A_ANNSMB,E_MapU2B_ANNSMB,E_MapU2C_ANNSMB,E_MapU2D_ANNSMB,E_MapU40_ANNSMB
-     .word E_MapU41_ANNSMB,E_MapU60_ANNSMB,E_MapU61_ANNSMB,E_MapU62_ANNSMB,E_MapU63_ANNSMB
+     .word E_AreaU00_ANNSMB, E_AreaU20_ANNSMB, E_AreaU21_ANNSMB, E_AreaU22_ANNSMB, E_AreaU23_ANNSMB, E_AreaU24_ANNSMB, E_AreaU25_ANNSMB, E_AreaU26_ANNSMB
+     .word E_AreaU27_ANNSMB, E_AreaU28_ANNSMB, E_AreaU29_ANNSMB, E_AreaU2A_ANNSMB, E_AreaU2B_ANNSMB, E_AreaU2C_ANNSMB, E_AreaU2D_ANNSMB, E_AreaU40_ANNSMB
+     .word E_AreaU41_ANNSMB, E_AreaU60_ANNSMB, E_AreaU61_ANNSMB, E_AreaU62_ANNSMB, E_AreaU63_ANNSMB
 UraAreaDataAddrs_ANNSMB:
-     .word L_MapU00_ANNSMB,L_MapU20_ANNSMB,L_MapU21_ANNSMB,L_MapU22_ANNSMB,L_MapU23_ANNSMB,L_MapU24_ANNSMB,L_MapU25_ANNSMB,L_MapU26_ANNSMB
-     .word L_MapU27_ANNSMB,L_MapU28_ANNSMB,L_MapU29_ANNSMB,L_MapU2A_ANNSMB,L_MapU2B_ANNSMB,L_MapU2C_ANNSMB,L_MapU2D_ANNSMB,L_MapU40_ANNSMB
-     .word L_MapU41_ANNSMB,L_MapU60_ANNSMB,L_MapU61_ANNSMB,L_MapU62_ANNSMB,L_MapU63_ANNSMB
+     .word L_AreaU00_ANNSMB, L_AreaU20_ANNSMB, L_AreaU21_ANNSMB, L_AreaU22_ANNSMB, L_AreaU23_ANNSMB, L_AreaU24_ANNSMB, L_AreaU25_ANNSMB, L_AreaU26_ANNSMB
+     .word L_AreaU27_ANNSMB, L_AreaU28_ANNSMB, L_AreaU29_ANNSMB, L_AreaU2A_ANNSMB, L_AreaU2B_ANNSMB, L_AreaU2C_ANNSMB, L_AreaU2D_ANNSMB, L_AreaU40_ANNSMB
+     .word L_AreaU41_ANNSMB, L_AreaU60_ANNSMB, L_AreaU61_ANNSMB, L_AreaU62_ANNSMB, L_AreaU63_ANNSMB
 	  
 ;------------------------------------------------------------------------------------
 

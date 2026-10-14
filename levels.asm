@@ -1,17 +1,17 @@
 ;-------------------------------------------------------------------------------------
 ;SMB1 ENEMY OBJECT DATA
 
-;level 1-4/6-4
+;level 1-4
 E_CastleArea1_:
-      .incbin "levels/smb1/enemies/E_1-4_6-4.bin"
+      .incbin "levels/smb1/enemies/E_1-4.bin"
 
 ;level 4-4
 E_CastleArea2_:
       .incbin "levels/smb1/enemies/E_4-4.bin"
 
-;level 2-4/5-4
+;level 2-4
 E_CastleArea3_:
-      .incbin "levels/smb1/enemies/E_2-4_5-4.bin"
+      .incbin "levels/smb1/enemies/E_2-4.bin"
 
 ;level 3-4
 E_CastleArea4_:
@@ -24,6 +24,14 @@ E_CastleArea5_:
 ;level 8-4
 E_CastleArea6_:
       .incbin "levels/smb1/enemies/E_8-4.bin"
+
+;level 6-4
+E_CastleArea7_:
+      .incbin "levels/smb1/enemies/E_6-4.bin"
+
+;level 5-4
+E_CastleArea8_:
+      .incbin "levels/smb1/enemies/E_5-4.bin"
 
 ;level 3-3
 E_GroundArea1_:
@@ -49,13 +57,13 @@ E_GroundArea5_:
 E_GroundArea6_:
       .incbin "levels/smb1/enemies/E_1-1.bin"
 
-;level 1-3/5-3
+;level 1-3
 E_GroundArea7_:
-      .incbin "levels/smb1/enemies/E_1-3_5-3.bin"
+      .incbin "levels/smb1/enemies/E_1-3.bin"
 
-;level 2-3/7-3
+;level 2-3
 E_GroundArea8_:
-      .incbin "levels/smb1/enemies/E_2-3_7-3.bin"
+      .incbin "levels/smb1/enemies/E_2-3.bin"
 
 ;level 2-1
 E_GroundArea9_:
@@ -113,6 +121,14 @@ E_GroundArea21_:
 E_GroundArea22_:
       .incbin "levels/smb1/enemies/E_3-2.bin"
 
+;level 5-3
+E_GroundArea23_:
+      .incbin "levels/smb1/enemies/E_5-3.bin"
+
+;level 7-3
+E_GroundArea24_:
+      .incbin "levels/smb1/enemies/E_7-3.bin"
+
 ;level 1-2
 E_UndergroundArea1_:
       .incbin "levels/smb1/enemies/E_1-2.bin"
@@ -133,30 +149,30 @@ E_UndergroundArea4_:
 E_WaterArea1_:
       .incbin "levels/smb1/enemies/E_WATER.bin"
 
-;level 2-2/7-2
+;level 2-2
 E_WaterArea2_:
-      .incbin "levels/smb1/enemies/E_2-2_7-2.bin"
+      .incbin "levels/smb1/enemies/E_2-2.bin"
 
 ;water area used in level 8-4
 E_WaterArea3_:
       .incbin "levels/smb1/enemies/E_8-4WATER.bin"
 
-;level 9-1
+;level 7-2
 E_WaterArea4_:
+      .incbin "levels/smb1/enemies/E_7-2.bin"
+
+;level 9-1
+E_WaterArea5_:
       .incbin "levels/smb1/enemies/E_9-1.bin"
 
 ;level 9-2
-E_WaterArea5_:
-      .incbin "levels/smb1/enemies/E_9-2.bin"
-
-;level 9-3
 E_WaterArea6_:
-      .byte $ff
+      .incbin "levels/smb1/enemies/E_9-2.bin"
 
 ;--------------------------------
 ;SMB1 AREA OBJECT DATA
 
-;level 1-4/6-4
+;level 1-4
 L_CastleArea1_:
       .incbin "levels/smb1/levels/L_1-4_6-4.bin"
 
@@ -164,7 +180,7 @@ L_CastleArea1_:
 L_CastleArea2_:
       .incbin "levels/smb1/levels/L_4-4.bin"
 
-;level 2-4/5-4
+;level 2-4
 L_CastleArea3_:
       .incbin "levels/smb1/levels/L_2-4_5-4.bin"
 
@@ -179,6 +195,14 @@ L_CastleArea5_:
 ;level 8-4
 L_CastleArea6_:
       .incbin "levels/smb1/levels/L_8-4.bin"
+
+;level 6-4
+L_CastleArea7_:
+      .incbin "levels/smb1/levels/L_1-4_6-4.bin"
+
+;level 5-4
+L_CastleArea8_:
+      .incbin "levels/smb1/levels/L_2-4_5-4.bin"
 
 ;level 3-3
 L_GroundArea1_:
@@ -204,11 +228,11 @@ L_GroundArea5_:
 L_GroundArea6_:
       .incbin "levels/smb1/levels/L_1-1.bin"
 
-;level 1-3/5-3
+;level 1-3
 L_GroundArea7_:
       .incbin "levels/smb1/levels/L_1-3_5-3.bin"
 
-;level 2-3/7-3
+;level 2-3
 L_GroundArea8_:
       .incbin "levels/smb1/levels/L_2-3_7-3.bin"
 
@@ -268,6 +292,14 @@ L_GroundArea21_:
 L_GroundArea22_:
       .incbin "levels/smb1/levels/L_3-2.bin"
 
+;level 5-3
+L_GroundArea23_:
+      .incbin "levels/smb1/levels/L_1-3_5-3.bin"
+
+;level 7-3
+L_GroundArea24_:
+      .incbin "levels/smb1/levels/L_2-3_7-3.bin"
+
 ;level 1-2
 L_UndergroundArea1_:
       .incbin "levels/smb1/levels/L_1-2.bin"
@@ -288,7 +320,7 @@ L_UndergroundArea4_:
 L_WaterArea1_:
       .incbin "levels/smb1/levels/L_WATER.bin"
 
-;level 2-2/7-2
+;level 2-2
 L_WaterArea2_:
       .incbin "levels/smb1/levels/L_2-2_7-2.bin"
 
@@ -296,17 +328,17 @@ L_WaterArea2_:
 L_WaterArea3_:
       .incbin "levels/smb1/levels/L_8-4WATER.bin"
 
-;level 9-1
+;level 7-2
 L_WaterArea4_:
+      .incbin "levels/smb1/levels/L_2-2_7-2.bin"
+
+;level 9-1
+L_WaterArea5_:
       .incbin "levels/smb1/levels/L_9-1.bin"
 
 ;level 9-2
-L_WaterArea5_:
-      .incbin "levels/smb1/levels/L_9-2.bin"
-
-;level 9-3
 L_WaterArea6_:
-      .byte $fd
+      .incbin "levels/smb1/levels/L_9-2.bin"
 
 ;-------------------------------------------------------------------------------------
 ;SMB2 ENEMY OBJECT DATA

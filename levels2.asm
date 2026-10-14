@@ -238,414 +238,412 @@ L_Area67_VSSMB:
 ;--------------------------------
 ; ANNSMB LEVEL DATA
 
-;-------------------------------------------------------------------------------------
-
 ;unused
-E_Map04_ANNSMB:
+E_Area04_ANNSMB:
 .byte $ff
-L_Map04_ANNSMB:
+L_Area04_ANNSMB:
 .byte $fd
 
 ;level 1-1, also used as a common exit area
-E_Map25_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map25.bin"
+E_Area25_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area25.bin"
 ;level 1-1, also used as a common exit area
-L_Map25_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map25.bin"
+L_Area25_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area25.bin"
 
 ;common exit area
-E_Map38_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map38.bin"
+E_Area38_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area38.bin"
 ;pipe intro area
-L_Map38_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map38.bin"
+L_Area38_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area38.bin"
 
 ;pipe intro area
-E_Map29_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map29.bin"
+E_Area29_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area29.bin"
 ;pipe intro area
-L_Map29_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map29.bin"
+L_Area29_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area29.bin"
 
 ;night pipe intro area
-E_Map3B_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map3B.bin"
+E_Area3B_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area3B.bin"
 ;night pipe intro area
-L_Map3B_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map3B.bin"
+L_Area3B_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area3B.bin"
 
 ;cloud subarea used in levels 2-1
-E_Map2B_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map2B.bin"
+E_Area2B_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area2B.bin"
 ;cloud subarea used in levels 2-1
-L_Map2B_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map2B.bin"
+L_Area2B_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area2B.bin"
 
 ;cloud subarea used in levels 3-1
-E_Map34_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map34.bin"
+E_Area34_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area34.bin"
 ;cloud subarea used in levels 3-1
-L_Map34_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map34.bin"
+L_Area34_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area34.bin"
 
 ;cloud subarea used in levels 5-2
-E_Map39_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map39.bin"
+E_Area39_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area39.bin"
 ;cloud subarea used in levels 5-2
-L_Map39_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map39.bin"
+L_Area39_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area39.bin"
 
 ;cloud subarea used in levels 6-2
-E_Map3A_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map3A.bin"
+E_Area3A_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area3A.bin"
 ;cloud subarea used in levels 6-2
-L_Map3A_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map3A.bin"
+L_Area3A_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area3A.bin"
 
 ;underground subarea used in worlds 1 to 4
-E_Map42_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map42.bin"
+E_Area42_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area42.bin"
 ;underground subarea used in worlds 1 to 4
-L_Map42_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map42.bin"
+L_Area42_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area42.bin"
 
 ;underground subarea used in worlds 5 to 8
-E_Map43_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map43.bin"
+E_Area43_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area43.bin"
 ;underground subarea used in worlds 5 to 8
-L_Map43_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map43.bin"
+L_Area43_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area43.bin"
 
 ;level 2-2
-E_Map03_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map03.bin"
-L_Map03_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map03.bin"
+E_Area03_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area03.bin"
+L_Area03_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area03.bin"
 
 ;level 3-3
-E_Map20_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map20.bin"
-L_Map20_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map20.bin"
+E_Area20_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area20.bin"
+L_Area20_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area20.bin"
 
 ;level 4-1
-E_Map22_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map22.bin"
-L_Map22_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map22.bin"
+E_Area22_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area22.bin"
+L_Area22_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area22.bin"
 
 ;level 3-1
-E_Map24_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map24.bin"
-L_Map24_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map24.bin"
+E_Area24_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area24.bin"
+L_Area24_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area24.bin"
 
 ;level 2-1
-E_Map28_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map28.bin"
-L_Map28_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map28.bin"
+E_Area28_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area28.bin"
+L_Area28_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area28.bin"
 
 ;level 4-3
-E_Map2C_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map2C.bin"
-L_Map2C_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map2C.bin"
+E_Area2C_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area2C.bin"
+L_Area2C_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area2C.bin"
 
 ;warp zone subarea used in level 4-2
-E_Map2F_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map2F.bin"
-L_Map2F_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map2F.bin"
+E_Area2F_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area2F.bin"
+L_Area2F_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area2F.bin"
 
 ;level 3-2
-E_Map35_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map35.bin"
-L_Map35_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map35.bin"
+E_Area35_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area35.bin"
+L_Area35_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area35.bin"
 
 ;level 1-3
-E_Map36_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map36.bin"
-L_Map36_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map36.bin"
+E_Area36_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area36.bin"
+L_Area36_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area36.bin"
 
 ;level 2-3
-E_Map37_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map37.bin"
-L_Map37_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map37.bin"
+E_Area37_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area37.bin"
+L_Area37_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area37.bin"
 
 ;level 1-2
-E_Map40_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map40.bin"
-L_Map40_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map40.bin"
+E_Area40_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area40.bin"
+L_Area40_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area40.bin"
 
 ;level 4-2
-E_Map41_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map41.bin"
-L_Map41_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map41.bin"
+E_Area41_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area41.bin"
+L_Area41_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area41.bin"
 
 ;level 2-4
-E_Map62_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map62.bin"
-L_Map62_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map62.bin"
+E_Area62_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area62.bin"
+L_Area62_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area62.bin"
 
 ;level 3-4
-E_Map63_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map63.bin"
-L_Map63_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map63.bin"
+E_Area63_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area63.bin"
+L_Area63_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area63.bin"
 
 ;level 1-4
-E_Map66_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map66.bin"
-L_Map66_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map66.bin"
+E_Area66_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area66.bin"
+L_Area66_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area66.bin"
 
 ;level 4-4
-E_Map67_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map67.bin"
-L_Map67_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map67.bin"
+E_Area67_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area67.bin"
+L_Area67_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area67.bin"
 
 ;water subarea used in levels 5-2 and 6-2
-E_Map00_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map00.bin"
-L_Map00_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map00.bin"
+E_Area00_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area00.bin"
+L_Area00_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area00.bin"
 
 ;level 7-2
-E_Map01_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map01.bin"
-L_Map01_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map01.bin"
+E_Area01_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area01.bin"
+L_Area01_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area01.bin"
 
 ;water subarea used in level 8-4
-E_Map02_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map02.bin"
-L_Map02_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map02.bin"
+E_Area02_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area02.bin"
+L_Area02_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area02.bin"
 
 ;level 8-3
-E_Map21_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map21.bin"
-L_Map21_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map21.bin"
+E_Area21_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area21.bin"
+L_Area21_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area21.bin"
 
 ;level 6-2
-E_Map23_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map23.bin"
-L_Map23_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map23.bin"
+E_Area23_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area23.bin"
+L_Area23_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area23.bin"
 
 ;level 6-3
-E_Map26_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map26.bin"
-L_Map26_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map26.bin"
+E_Area26_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area26.bin"
+L_Area26_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area26.bin"
 
 ;level 7-3
-E_Map27_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map27.bin"
-L_Map27_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map27.bin"
+E_Area27_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area27.bin"
+L_Area27_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area27.bin"
 
 ;level 5-1
-E_Map2A_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map2A.bin"
-L_Map2A_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map2A.bin"
+E_Area2A_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area2A.bin"
+L_Area2A_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area2A.bin"
 
 ;level 5-3
-E_Map2D_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map2D.bin"
-L_Map2D_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map2D.bin"
+E_Area2D_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area2D.bin"
+L_Area2D_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area2D.bin"
 
 ;level 6-1
-E_Map2E_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map2E.bin"
-L_Map2E_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map2E.bin"
+E_Area2E_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area2E.bin"
+L_Area2E_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area2E.bin"
 
 ;level 8-1
-E_Map30_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map30.bin"
-L_Map30_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map30.bin"
+E_Area30_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area30.bin"
+L_Area30_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area30.bin"
 
 ;level 5-2
-E_Map31_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map31.bin"
-L_Map31_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map31.bin"
+E_Area31_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area31.bin"
+L_Area31_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area31.bin"
 
 ;level 8-2
-E_Map32_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map32.bin"
-L_Map32_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map32.bin"
+E_Area32_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area32.bin"
+L_Area32_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area32.bin"
 
 ;level 7-1
-E_Map33_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map33.bin"
-L_Map33_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map33.bin"
+E_Area33_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area33.bin"
+L_Area33_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area33.bin"
 
 ;level 6-4
-E_Map60_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map60.bin"
-L_Map60_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map60.bin"
+E_Area60_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area60.bin"
+L_Area60_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area60.bin"
 
 ;level 5-4
-E_Map61_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map61.bin"
-L_Map61_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map61.bin"
+E_Area61_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area61.bin"
+L_Area61_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area61.bin"
 
 ;level 7-4
-E_Map64_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map64.bin"
-L_Map64_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map64.bin"
+E_Area64_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area64.bin"
+L_Area64_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area64.bin"
 
 ;level 8-4
-E_Map65_ANNSMB:
-.incbin "levels/annsmb/enemies/E_Map65.bin"
-L_Map65_ANNSMB:
-.incbin "levels/annsmb/levels/L_Map65.bin"
+E_Area65_ANNSMB:
+.incbin "levels/annsmb/enemies/E_Area65.bin"
+L_Area65_ANNSMB:
+.incbin "levels/annsmb/levels/L_Area65.bin"
 
 ;URA WORLDS
 
 ;level B-2
-E_MapU00_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU00.bin"
-L_MapU00_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU00.bin"
+E_AreaU00_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU00.bin"
+L_AreaU00_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU00.bin"
 
 ;level A-1
-E_MapU20_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU20.bin"
-L_MapU20_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU20.bin"
+E_AreaU20_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU20.bin"
+L_AreaU20_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU20.bin"
 
 ;level A-3
-E_MapU21_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU21.bin"
-L_MapU21_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU21.bin"
+E_AreaU21_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU21.bin"
+L_AreaU21_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU21.bin"
 
 ;level B-1
-E_MapU22_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU22.bin"
-L_MapU22_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU22.bin"
+E_AreaU22_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU22.bin"
+L_AreaU22_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU22.bin"
 
 ;level B-3
-E_MapU23_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU23.bin"
-L_MapU23_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU23.bin"
+E_AreaU23_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU23.bin"
+L_AreaU23_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU23.bin"
 
 ;level C-1
-E_MapU24_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU24.bin"
-L_MapU24_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU24.bin"
+E_AreaU24_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU24.bin"
+L_AreaU24_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU24.bin"
 
 ;level C-2
-E_MapU25_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU25.bin"
-L_MapU25_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU25.bin"
+E_AreaU25_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU25.bin"
+L_AreaU25_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU25.bin"
 
 ;level C-3
-E_MapU26_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU26.bin"
-L_MapU26_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU26.bin"
+E_AreaU26_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU26.bin"
+L_AreaU26_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU26.bin"
 
 ;level D-1
-E_MapU27_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU27.bin"
-L_MapU27_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU27.bin"
+E_AreaU27_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU27.bin"
+L_AreaU27_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU27.bin"
 
 ;level D-2
-E_MapU28_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU28.bin"
-L_MapU28_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU28.bin"
+E_AreaU28_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU28.bin"
+L_AreaU28_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU28.bin"
 
 ;level D-3
-E_MapU29_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU29.bin"
-L_MapU29_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU29.bin"
+E_AreaU29_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU29.bin"
+L_AreaU29_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU29.bin"
 
 ;level D-4 ground section 
-E_MapU2A_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU2A.bin"
-L_MapU2A_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU2A.bin"
+E_AreaU2A_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU2A.bin"
+L_AreaU2A_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU2A.bin"
 
 ;ura world cloud bonus
-E_MapU2B_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU2B.bin"
-L_MapU2B_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU2B.bin"
+E_AreaU2B_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU2B.bin"
+L_AreaU2B_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU2B.bin"
 
 ;ura world pipe cutscene 
-E_MapU2C_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU2C.bin"
-L_MapU2C_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU2C.bin"
+E_AreaU2C_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU2C.bin"
+L_AreaU2C_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU2C.bin"
 
 ;ura world common flagpole ending
-E_MapU2D_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU2D.bin"
-L_MapU2D_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU2D.bin"
+E_AreaU2D_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU2D.bin"
+L_AreaU2D_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU2D.bin"
 
 ;level A-2 
-E_MapU40_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU40.bin"
-L_MapU40_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU40.bin"
+E_AreaU40_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU40.bin"
+L_AreaU40_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU40.bin"
 
 ;ura world underground bonus
-E_MapU41_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU41.bin"
-L_MapU41_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU41.bin"
+E_AreaU41_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU41.bin"
+L_AreaU41_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU41.bin"
 
 
 ;level A-4 
-E_MapU60_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU60.bin"
-L_MapU60_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU60.bin"
+E_AreaU60_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU60.bin"
+L_AreaU60_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU60.bin"
 
 ;level B-4
-E_MapU61_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU61.bin"
-L_MapU61_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU61.bin"
+E_AreaU61_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU61.bin"
+L_AreaU61_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU61.bin"
 
 
 ;level C-4 
-E_MapU62_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU62.bin"
-L_MapU62_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU62.bin"
+E_AreaU62_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU62.bin"
+L_AreaU62_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU62.bin"
 
 ;level D-4
-E_MapU63_ANNSMB:
-.incbin "levels/annsmb/enemies/E_MapU63.bin"
-L_MapU63_ANNSMB:
-.incbin "levels/annsmb/levels/L_MapU63.bin"
+E_AreaU63_ANNSMB:
+.incbin "levels/annsmb/enemies/E_AreaU63.bin"
+L_AreaU63_ANNSMB:
+.incbin "levels/annsmb/levels/L_AreaU63.bin"
