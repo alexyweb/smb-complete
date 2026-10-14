@@ -15487,7 +15487,7 @@ Hidden1UpCoinAmts_ANNSMB:
       .byte $14, $1E, $14, $1B, $13, $18, $13, $63
 
 LevelAddrOffsets_ANNSMB:
-      .byte $00, $05, $21, $25
+      .byte $00, $04, $1c, $1f
 	  
 EnemyDataAddrs_ANNSMB:
       .word E_Map00_ANNSMB, E_Map01_ANNSMB, E_Map02_ANNSMB, E_Map03_ANNSMB, E_Map20_ANNSMB, E_Map21_ANNSMB, E_Map22_ANNSMB, E_Map23_ANNSMB
