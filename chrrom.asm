@@ -253,8 +253,9 @@
       .incbin "chr/new/unused.chr"
 .endrepeat
 
-; bank 15
-.repeat 64
+; bank 15 pause menu sprites
+.incbin "chr/new/spr/pause.chr"
+.repeat 38
       .incbin "chr/new/unused.chr"
 .endrepeat
 
