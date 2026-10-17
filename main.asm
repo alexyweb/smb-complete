@@ -3115,12 +3115,14 @@ VerticalPipe:
           iny                      ;add four if usage control bit was not set
 WarpPipe: tya                      ;save value in stack
           pha
-          lda LevelSet             ;are we playing SMB2 levels?
-          cmp #LEVELS_SMB2
+          ldy LevelSet             ;are we playing SMB2 levels?
+          cpy #LEVELS_SMB2
           beq PutPlant             ;if we are, always try to add piranha plant
           lda AreaNumber           ;otherwise check if we're in world 1-1
           ora WorldNumber          ;if at world 1-1, do not add piranha plant ever
           beq DrawPipe
+          cpy #LEVELS_ANNSMB       ;if playing ANNSMB levels, 8-4 water room has plant
+          beq PutPlant
           lda AreaType             ;workaround to prevent invisible plant in 8-4 water room
           bne PutPlant             ;(TO-DO: Probably better to make a flag that prevents plants
           lda AreaAddrsLOffset     ;so we don't have to run this code every time we make a pipe)
@@ -11577,6 +11579,8 @@ DoSide: jmp DoEnemySideCheck  ;check for horizontal blockage, then leave
 HammerBroBGColl:
       jsr ChkUnderEnemy    ;check to see if hammer bro is standing on anything
       beq NoUnderHammerBro
+      jsr ChkForNonSolids  ;if something is underneath hammer bro, find out what
+      beq NoUnderHammerBro ;if blank $26, coins, or hidden blocks, jump, hammer bro falls through
       cmp #$23             ;check for blank metatile $23 and branch if not found
       bne UnderHammerBro
 
